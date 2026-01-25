@@ -149,6 +149,6 @@ Definida en `graphCreator.py` y `main.py`:
     ```
 
 ---
-*Trabajo de Fin de Grado - Ingeniería Informática*
+*Trabajo de Fin de Grado - Ingeniería Informática y Matemáticas*
 
 
