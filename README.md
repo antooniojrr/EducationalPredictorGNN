@@ -93,6 +93,6 @@ A continuación se presentan los resultados obtenidos tras la validación cruzad
     ```
 
 ---
-*Trabajo de Fin de Grado - Ingeniería Informática*
+*Trabajo de Fin de Grado - Ingeniería Informática y Matemáticas*
 
 
