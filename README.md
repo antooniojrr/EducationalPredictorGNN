@@ -75,6 +75,62 @@ A continuación se presentan los resultados obtenidos tras la validación cruzad
 > * **R²:** Proporción de la varianza de las notas explicada por el modelo.
 > * **F1-Score:** Métrica crítica para evaluar la capacidad de detectar alumnos suspensos sin falsas alarmas.
 
+## ⚙️ Configuración del Entrenamiento y Hiperparámetros Ganadores (Por ahora)
+
+A continuación se detallan los hiperparámetros y configuraciones utilizadas para obtener los resultados experimentales. Estos valores se encuentran definidos en `src/model.py` y `src/main.py`.
+
+### 🎛️ Hiperparámetros Generales
+Configuración por defecto del `EntrenadorGNN`:
+
+| Parámetro | Valor | Descripción |
+| :--- | :---: | :--- |
+| **Épocas (Epochs)** | `500` | Máximo número de iteraciones de entrenamiento. |
+| **Learning Rate (LR)** | `0.01` | Tasa de aprendizaje inicial. |
+| **Hidden Dimension** | `32` | Tamaño de los vectores de características en capas ocultas. |
+| **Num Layers** | `2` | Número de capas de convolución (GNN) o recurrencia. |
+| **Dropout** | `0.2` | Probabilidad de desactivación de neuronas (Regularización). |
+| **Weight Decay** | `5e-4` | Penalización L2 en el optimizador Adam. |
+| **Paciencia (Early Stop)**| `50` | Épocas sin mejora antes de activar *Shake* o detener. |
+| **Max Restarts** | `3` | Número máximo de reinicios permitidos. |
+
+### 🧠 Estrategias de Optimización
+El sistema implementa mecanismos avanzados para evitar el colapso a la media y los mínimos locales:
+
+* **Optimizador:** `Adam`.
+* **Función de Pérdida:** `MSELoss` (Error Cuadrático Medio) sobre salidas normalizadas [0, 1].
+* **Scheduler (LR):** `ReduceLROnPlateau` (DESACTIVADO actualmente).
+    * Modo: `max` (Maximizar $R^2$).
+    * Factor: `0.5` (Reduce LR a la mitad).
+    * Paciencia: `10` épocas.
+* **Mecanismo "Shake & Restart":**
+    * **Vidas Extra:** `3` reinicios permitidos.
+    * **Inyección de Ruido:** Ruido gaussiano inicial ($\sigma=0.08$) con decaimiento exponencial ($0.8^n$) en cada reinicio.
+    * **Reinicio de LR:** Se reduce el LR actual al 50% tras cada *Shake*.
+
+### 🏗️ Arquitectura de Modelos Específicos
+Detalles de configuración interna para cada variante:
+
+* **GAT (Graph Attention Network):**
+    * **Heads:** `2` cabezales de atención.
+    * Activación: `ELU`.
+* **GraphSAGE:**
+    * **Agregador:** `LSTM` (requiere ordenación de vecinos).
+    * Activación: `ReLU`.
+* **STGNN (Espacio-Temporal):**
+    * **Backbone Espacial:** GAT (2 heads).
+    * **Backbone Temporal:** LSTM (batch_first=True).
+    * **Pipeline:** $GNN_{t} \rightarrow Stack \rightarrow LSTM \rightarrow Linear$.
+
+### 🧬 Configuración del Grafo y Datos
+Definida en `graphCreator.py` y `main.py`:
+
+* **Construcción del Grafo:** $k$-NN (k-Nearest Neighbors).
+    * **Vecinos ($k$):** `5`.
+    * **Perfil de Similitud:** `'a&g'` (Basado en vectores de Asistencia + Notas).
+    * **Métrica:** Distancia Euclidiana.
+* **Preprocesamiento:**
+    * **Target ($Y$):** Normalizado en rango $[0, 1]$ (Nota / 10).
+    * **Validación Cruzada:** 5-Fold Cross Validation (`shuffle=True`, `random_state=42`).
 ---
 
 ## 🛠️ Instalación y Uso
