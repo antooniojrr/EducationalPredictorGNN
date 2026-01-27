@@ -18,12 +18,16 @@ Su método principal será create_graph(), que devolverá un objeto Data de PyG 
 class GraphCreator:
     SIM_PROFILES = ['a', 'g', 'a&g', 'f3w']
 
-    def __init__(self, dl: DataLoader = DataLoader()):
+    def __init__(self, semana_final: int = None):
         """
-        dl: Instancia de DataLoader para cargar los datos base.
+        semana_final: Si se especifica, crea el grafo solo con datos hasta esa semana (predicción parcial).
         """
-
-        self.data_loader = dl
+        self.num_weeks = semana_final
+        self.data_loader = None
+        if semana_final is not None:
+            self.data_loader = DataLoader(num_weeks=semana_final)
+        else:
+            self.data_loader = DataLoader()
     
     def create_graph(self,cat_opt=None, sim_profile: str = 'a&g', k_neighbors=5, dyn_graph=True) -> Data:
         
@@ -44,7 +48,7 @@ class GraphCreator:
             dynamic_edge_indices = []
         
             for t in range(self.X.shape[1]):  
-                edge_index_t = self.create_adj_matrix(sim_profile='week', raw_comps=raw_comps, k=k_neighbors, t=t)
+                edge_index_t = self.create_adj_matrix(sim_profile='a&g', raw_comps=raw_comps, k=k_neighbors, t=t)
                 
                 dynamic_edge_indices.append(edge_index_t)
             
@@ -57,6 +61,9 @@ class GraphCreator:
         if dyn_graph:
             path = path + "dynamic_"
         
+        if self.num_weeks:
+            path = path + f"{self.num_weeks}weeks_"
+
         path = path + f"graph_{k_neighbors}NN.pt"
 
         torch.save(self.data, path)
@@ -70,7 +77,7 @@ class GraphCreator:
         sim_profile: Perfil de similitud a usar ('a', 'g', 'a&g', 'f3w', etc.)
         k: Número de vecinos para conectar en el grafo (similitud)
         raw_comps: Componentes crudas de features de los nodos (alumnos)
-        t: Si sim_profile es 'week', indica la semana a usar.
+        t: Si es distinto de None, indica hasta que semana aplicar el perfil. Si el perfil es week, es obligatorio. Si es f3w, no se usa.
         
         Returns:
             edge_index: Tensor con los índices de las aristas del grafo.
@@ -81,22 +88,40 @@ class GraphCreator:
             case 'a&g':
                 # Obtengo la asistencia y solo las notas de las semanas en las que hubo alguna entrega
                 att_feat = raw_comps[0].squeeze(-1)  # Asistencia
-                
+                if t and t < att_feat.shape[1]:
+                    att_feat = att_feat[:, :t+1]
+
                 grades_flat = raw_comps[1].squeeze(-1)  # Notas prácticas
+                if t and t < grades_flat.shape[1]:
+                    grades_flat = grades_flat[:, :t+1]
+
                 week_sum = grades_flat.sum(dim=0)
                 active_weeks = torch.nonzero(week_sum>0).squeeze()
 
-                grades_feat = grades_flat[:, active_weeks]/10.0  # Filtrar solo semanas activas
+                grades_feat = None
+                if active_weeks.numel() > 0:
+                   grades_feat = grades_flat[:, active_weeks]/10.0  # Filtrar solo semanas activas
+                   if grades_feat.dim() == 1:
+                        grades_feat = grades_feat.unsqueeze(1)
+
+                else:
+                    grades_feat = torch.empty((grades_flat.shape[0], 0))
 
                 similarity_profile = torch.cat([att_feat, grades_feat], dim=1).numpy()  # Concatenar asistencia y notas prácticas
 
             case 'a':
                 att_feat = raw_comps[0].squeeze(-1)  # Asistencia
+                if t and t < att_feat.shape[1]:
+                    att_feat = att_feat[:, :t+1]
+
                 similarity_profile = torch.cat([att_feat], dim=1).numpy()
                 metric = 'hamming'  # Métrica Hamming para datos binarios
             
             case 'g':
                 grades_flat = raw_comps[1].squeeze(-1)  # Notas prácticas
+                if t and t < grades_flat.shape[1]:
+                    grades_flat = grades_flat[:, :t+1]
+
                 week_sum = grades_flat.sum(dim=0)
                 active_weeks = torch.nonzero(week_sum>0).squeeze()
 

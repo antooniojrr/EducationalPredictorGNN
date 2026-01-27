@@ -27,7 +27,7 @@ class DataLoader:
         'Compromiso', 'Estrés'
     ]
 
-    def __init__(self, data_dir=REL_PATH_DATA,num_weeks=12, questions_per_survey=6, start_date=datetime(2025, 2, 27)):
+    def __init__(self, data_dir=REL_PATH_DATA, num_weeks=12, questions_per_survey=6, start_date=datetime(2025, 2, 27)):
         """
         root_dir: Ruta donde están tus csv
         num_weeks: Duración total del curso en semanas (para dimensionar el tensor)
@@ -232,30 +232,42 @@ class DataLoader:
         if os.path.exists(path_att):
             print("\t>>> Cargando Asistencia desde archivo procesado...")
             att_tensor = torch.load(path_att).numpy()
+            # Recortamos en función del número de semanas actual
+            if att_tensor.shape[1] > self.num_weeks:
+                att_tensor = att_tensor[:, :self.num_weeks]
         else:
             print("\t>>> Cargando y procesando Asistencia...")
             att_tensor = self._load_attendance()
-            torch.save(torch.tensor(att_tensor, dtype=torch.float), path_att)
+            if self.num_weeks == 12:
+                torch.save(torch.tensor(att_tensor, dtype=torch.float), path_att)
 
         # 3. CARGAR SEGUIMIENTO (Notas parciales) ------------------------------------------
         path_grades = os.path.join(self.root, 'processed/tensors', 'grades.pt')
         if os.path.exists(path_grades):
             print("\t>>> Cargando Notas Parciales desde archivo procesado...")
             grades_tensor = torch.load(path_grades).numpy()
+            # Recortamos en función del número de semanas actual
+            if grades_tensor.shape[1] > self.num_weeks:
+                grades_tensor = grades_tensor[:, :self.num_weeks]
         else:
             print("\t>>> Cargando y procesando Notas Parciales...")
             grades_tensor = self._load_grades()
-            torch.save(torch.tensor(grades_tensor, dtype=torch.float), path_grades)
+            if self.num_weeks == 12:
+                torch.save(torch.tensor(grades_tensor, dtype=torch.float), path_grades)
 
         # 4. CARGAR ENCUESTAS (Iterar por archivos)--------------------------------------------
         path_surveys = os.path.join(self.root, 'processed/tensors', 'surveys.pt')
         if os.path.exists(path_surveys):
             print("\t>>> Cargando Encuestas desde archivo procesado...")
             surveys_tensor = torch.load(path_surveys).numpy()
+            # Recortamos en función del número de semanas actual
+            if surveys_tensor.shape[1] > self.num_weeks:
+                surveys_tensor = surveys_tensor[:, :self.num_weeks, :]
         else:
             print("\t>>> Cargando y procesando Encuestas...")
             surveys_tensor = self._load_surveys()
-            torch.save(torch.tensor(surveys_tensor, dtype=torch.float), path_surveys)
+            if self.num_weeks == 12:
+                torch.save(torch.tensor(surveys_tensor, dtype=torch.float), path_surveys)
         
         # 5. CONSOLIDAR TENSOR X (Concatenar features)-------------------------------------
         # Base: [N, Weeks, F_total]
@@ -270,6 +282,9 @@ class DataLoader:
         if os.path.exists(path_x):
             print(f"\t>>> Cargando X ({cat_opt}) desde archivo procesado...")
             self.X = torch.load(path_x)
+            # Recortamos en función del número de semanas actual
+            if self.X.shape[1] > self.num_weeks and cat_opt == 'Temp':
+                self.X = self.X[:, :self.num_weeks, :]
             raw_comps = [att_expanded, grades_expanded, surv_expanded]
             print(f"Dimensiones finales de X: {self.X.shape}, Y: {self.Y.shape}")
             print(f"Dimensiones componentes crudas: {[comp.shape for comp in raw_comps]}")
@@ -297,7 +312,8 @@ class DataLoader:
                 # .reshape(N, -1) le dice a Torch: mantén N filas y calcula el resto automáticamente
                 self.X = X_base.reshape(X_base.shape[0], -1)
             
-            torch.save(self.X, os.path.join(self.root, 'processed/tensors', "X_"+cat_opt+".pt"))
+            if self.num_weeks == 12:
+                torch.save(self.X, os.path.join(self.root, 'processed/tensors', "X_"+cat_opt+".pt"))
             raw_comps = [att_expanded, grades_expanded, surv_expanded]
 
             print(f"Dimensiones finales de X: {self.X.shape}, Y: {self.Y.shape}")

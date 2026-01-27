@@ -3,11 +3,15 @@ import seaborn as sns
 import numpy as np
 import os
 
-def plot_model_performance(predictions_dict, save_path='./media/predictions/'):
+PATH_PREDICTIONS_OUTPUT = "./media/predictions/"
+os.makedirs(PATH_PREDICTIONS_OUTPUT, exist_ok=True)
+
+def plot_model_performance(predictions_dict, tag="last"):
     """
     Genera gráficas comparativas Real vs Predicho para cada modelo.
     predictions_dict: { 'NombreModelo': (y_true, y_pred) }
     """
+    save_path = PATH_PREDICTIONS_OUTPUT + f"{tag}/"
     os.makedirs(save_path, exist_ok=True)
     sns.set_style("whitegrid")
     
