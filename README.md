@@ -15,6 +15,7 @@ El proyecto implementa un pipeline completo de *Machine Learning* educativo, des
     * `a&g`: Híbrido (Asistencia + Notas).
     * `f3w`: Alerta Temprana (Primeras 3 semanas).
 * **Dualidad Estática/Temporal:** Soporte para grafos estáticos (snapshot único) y grafos dinámicos (evolución semana a semana).
+* **NOTA IMPORTANTE:** No se utilizan las notas de los parciales teóricos de la asignatura ya que con estos son con los que se calcula la nota final. Solo se usan las notas de seguimiento continuo.
 
 ### 2. Arquitectura de Modelos (`model.py`)
 Implementación modular de modelos de Estado del Arte (SOTA) comparables bajo el mismo framework:

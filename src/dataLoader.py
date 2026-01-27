@@ -1,5 +1,3 @@
-
-
 from datetime import datetime
 import os
 import re
@@ -7,7 +5,6 @@ import numpy as np
 import pandas as pd
 import torch
 import warnings
-from sklearn.preprocessing import StandardScaler 
 
 warnings.simplefilter('ignore', DeprecationWarning)
 
@@ -23,6 +20,13 @@ REL_PATH_DATA = "./data/"
 """Clase para cargar y procesar los datos del curso de manera estructurada en un tensor de Torch."""
 class DataLoader:
     CAT_OPTIONS = ['Temp', 'MP', 'Concat']
+    
+    FEATURE_NAMES = [
+        'Asistencia', 'Nota_Semanal',
+        'Encuesta_P1', 'Encuesta_P2', 'Encuesta_P3', 'Encuesta_P4', 'Encuesta_P5','Encuesta_P6',
+        'Compromiso', 'Estrés'
+    ]
+
     def __init__(self, data_dir=REL_PATH_DATA,num_weeks=12, questions_per_survey=6, start_date=datetime(2025, 2, 27)):
         """
         root_dir: Ruta donde están tus csv

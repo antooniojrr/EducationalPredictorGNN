@@ -1,26 +1,246 @@
-MAE,RMSE,R2,Accuracy,F1_Score,True_Negatives,False_Negatives,False_Positives,True_Positives,Modelo,Fold
-0.668691098690033,0.7832673158287033,0.397590696811676,0.9333333333333333,0.9354497354497354,4,1,0,10,LSTM,1
-0.7034443020820618,0.89902821899442,0.6954458355903625,1.0,1.0,2,0,0,13,LSTM,2
-0.8011942505836487,1.0106265384282545,0.7757960557937622,0.9333333333333333,0.9320574162679426,5,0,1,9,LSTM,3
-0.5768786072731018,0.7142003817335875,0.7920049428939819,0.9285714285714286,0.9229813664596274,2,0,1,11,LSTM,4
-0.6518121361732483,0.9193507403836656,0.4769818186759949,0.8571428571428571,0.8571428571428571,2,1,1,10,LSTM,5
-0.7388374209403992,0.9314028838451515,0.14818203449249268,0.6666666666666666,0.6501035196687371,1,2,3,9,GCN,1
-1.0464531183242798,1.45522124335484,0.20204955339431763,0.8,0.8160000000000001,1,2,1,11,GCN,2
-1.3613231182098389,1.6538367774438265,0.3995910882949829,0.8,0.7961722488038276,4,1,2,8,GCN,3
-0.8763595223426819,1.2111860450890612,0.40181636810302734,0.8571428571428571,0.8273809523809523,1,0,2,11,GCN,4
-0.743184506893158,1.1149156318699855,0.23080170154571533,0.8571428571428571,0.8273809523809523,1,0,2,11,GCN,5
-0.8085349202156067,0.9722240974014605,0.07187938690185547,0.6,0.55,0,2,4,9,GAT,1
-1.0511419773101807,1.4679503191511114,0.18802881240844727,0.9333333333333333,0.9234567901234567,1,0,1,13,GAT,2
-1.167948603630066,1.4962094414104992,0.5085870027542114,0.8666666666666667,0.86,4,0,2,9,GAT,3
-0.8574492335319519,1.1932146199989642,0.4194362163543701,0.8571428571428571,0.8273809523809523,1,0,2,11,GAT,4
-0.79638671875,1.058931585365956,0.30611079931259155,0.8571428571428571,0.8273809523809523,1,0,2,11,GAT,5
-0.6077508330345154,0.7771258024690463,0.4070005416870117,0.7333333333333333,0.6205128205128205,0,0,4,11,SAGE,1
-0.8397577404975891,0.9635817270285062,0.6501394510269165,1.0,1.0,2,0,0,13,SAGE,2
-0.7015420198440552,1.080939944138511,0.7435132265090942,0.9333333333333333,0.9320574162679426,5,0,1,9,SAGE,3
-0.6789182424545288,0.7847043914982192,0.7489125728607178,0.8571428571428571,0.8571428571428571,2,1,1,10,SAGE,4
-0.6289005875587463,0.910420031654081,0.48709380626678467,0.9285714285714286,0.9229813664596274,2,0,1,11,SAGE,5
-0.685928463935852,0.8846086105913409,0.23162370920181274,0.7333333333333333,0.6205128205128205,0,0,4,11,STGNN,1
-0.8564938902854919,1.140650396194961,0.5097439289093018,0.9333333333333333,0.9234567901234567,1,0,1,13,STGNN,2
-0.7120373845100403,0.9774299431108747,0.7902832627296448,0.9333333333333333,0.9320574162679426,5,0,1,9,STGNN,3
-0.751843273639679,0.9509984667110818,0.6312156915664673,0.9285714285714286,0.9229813664596274,2,0,1,11,STGNN,4
-0.749359667301178,1.0081361945725642,0.37108391523361206,0.8571428571428571,0.8571428571428571,2,1,1,10,STGNN,5
+Model_Name,Model_Type,Fold,Metrics,Config,Model
+LSTM_27012026,LSTM,1,"{'MAE': 0.7083114981651306, 'RMSE': np.float64(0.8892720302397825), 'R2': 0.22350096702575684, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9354497354497354, 'True_Negatives': np.int64(4), 'False_Negatives': np.int64(1), 'False_Positives': np.int64(0), 'True_Positives': np.int64(10)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'LSTM_27012026', 'model_type': 'LSTM', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): My_LSTM(
+    (lstm): LSTM(10, 32, num_layers=2, batch_first=True, dropout=0.2)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+    (dropout): Dropout(p=0.2, inplace=False)
+    (sigmoid): Sigmoid()
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+LSTM_27012026,LSTM,2,"{'MAE': 0.8910170197486877, 'RMSE': np.float64(1.1860898830937234), 'R2': 0.4699057340621948, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9234567901234567, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(13)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'LSTM_27012026', 'model_type': 'LSTM', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): My_LSTM(
+    (lstm): LSTM(10, 32, num_layers=2, batch_first=True, dropout=0.2)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+    (dropout): Dropout(p=0.2, inplace=False)
+    (sigmoid): Sigmoid()
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+LSTM_27012026,LSTM,3,"{'MAE': 0.8045481443405151, 'RMSE': np.float64(1.033214201263881), 'R2': 0.7656620740890503, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9320574162679426, 'True_Negatives': np.int64(5), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'LSTM_27012026', 'model_type': 'LSTM', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): My_LSTM(
+    (lstm): LSTM(10, 32, num_layers=2, batch_first=True, dropout=0.2)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+    (dropout): Dropout(p=0.2, inplace=False)
+    (sigmoid): Sigmoid()
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+LSTM_27012026,LSTM,4,"{'MAE': 0.528458833694458, 'RMSE': np.float64(0.6669866692913775), 'R2': 0.8185958862304688, 'Accuracy': 1.0, 'F1_Score': 1.0, 'True_Negatives': np.int64(3), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(0), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'LSTM_27012026', 'model_type': 'LSTM', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): My_LSTM(
+    (lstm): LSTM(10, 32, num_layers=2, batch_first=True, dropout=0.2)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+    (dropout): Dropout(p=0.2, inplace=False)
+    (sigmoid): Sigmoid()
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+LSTM_27012026,LSTM,5,"{'MAE': 0.6106600165367126, 'RMSE': np.float64(0.9310223589198517), 'R2': 0.46361756324768066, 'Accuracy': 0.9285714285714286, 'F1_Score': 0.9229813664596274, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'LSTM_27012026', 'model_type': 'LSTM', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): My_LSTM(
+    (lstm): LSTM(10, 32, num_layers=2, batch_first=True, dropout=0.2)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+    (dropout): Dropout(p=0.2, inplace=False)
+    (sigmoid): Sigmoid()
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GCN_27012026,GCN,1,"{'MAE': 0.7570974826812744, 'RMSE': np.float64(0.9491395642567214), 'R2': 0.11543077230453491, 'Accuracy': 0.6666666666666666, 'F1_Score': 0.6501035196687371, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(2), 'False_Positives': np.int64(3), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GCN_27012026', 'model_type': 'GCN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GCN(
+    (convs): ModuleList(
+      (0): GCNConv(10, 32)
+      (1): GCNConv(32, 32)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GCN_27012026,GCN,2,"{'MAE': 1.0475364923477173, 'RMSE': np.float64(1.4871136748700395), 'R2': 0.16669070720672607, 'Accuracy': 0.8666666666666667, 'F1_Score': 0.8666666666666667, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(1), 'False_Positives': np.int64(1), 'True_Positives': np.int64(12)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GCN_27012026', 'model_type': 'GCN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GCN(
+    (convs): ModuleList(
+      (0): GCNConv(10, 32)
+      (1): GCNConv(32, 32)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GCN_27012026,GCN,3,"{'MAE': 1.2151226997375488, 'RMSE': np.float64(1.6104207021145351), 'R2': 0.4307008981704712, 'Accuracy': 0.8666666666666667, 'F1_Score': 0.86, 'True_Negatives': np.int64(4), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(2), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GCN_27012026', 'model_type': 'GCN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GCN(
+    (convs): ModuleList(
+      (0): GCNConv(10, 32)
+      (1): GCNConv(32, 32)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GCN_27012026,GCN,4,"{'MAE': 0.9667723774909973, 'RMSE': np.float64(1.234341439865308), 'R2': 0.37872564792633057, 'Accuracy': 0.8571428571428571, 'F1_Score': 0.8273809523809523, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(2), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GCN_27012026', 'model_type': 'GCN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GCN(
+    (convs): ModuleList(
+      (0): GCNConv(10, 32)
+      (1): GCNConv(32, 32)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GCN_27012026,GCN,5,"{'MAE': 0.7133163809776306, 'RMSE': np.float64(1.1275684917817888), 'R2': 0.21324384212493896, 'Accuracy': 0.8571428571428571, 'F1_Score': 0.8273809523809523, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(2), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GCN_27012026', 'model_type': 'GCN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GCN(
+    (convs): ModuleList(
+      (0): GCNConv(10, 32)
+      (1): GCNConv(32, 32)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GAT_27012026,GAT,1,"{'MAE': 0.8214465975761414, 'RMSE': np.float64(0.9804036092206152), 'R2': 0.056196749210357666, 'Accuracy': 0.6, 'F1_Score': 0.55, 'True_Negatives': np.int64(0), 'False_Negatives': np.int64(2), 'False_Positives': np.int64(4), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GAT_27012026', 'model_type': 'GAT', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GAT(
+    (convs): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+      (1): GATConv(64, 32, heads=1)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GAT_27012026,GAT,2,"{'MAE': 1.0237295627593994, 'RMSE': np.float64(1.470131488161355), 'R2': 0.18561410903930664, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9234567901234567, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(13)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GAT_27012026', 'model_type': 'GAT', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GAT(
+    (convs): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+      (1): GATConv(64, 32, heads=1)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GAT_27012026,GAT,3,"{'MAE': 1.1414178609848022, 'RMSE': np.float64(1.4617297630364117), 'R2': 0.5309749841690063, 'Accuracy': 0.8666666666666667, 'F1_Score': 0.86, 'True_Negatives': np.int64(4), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(2), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GAT_27012026', 'model_type': 'GAT', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GAT(
+    (convs): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+      (1): GATConv(64, 32, heads=1)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GAT_27012026,GAT,4,"{'MAE': 0.9047728180885315, 'RMSE': np.float64(1.1881059305345318), 'R2': 0.4243968725204468, 'Accuracy': 0.9285714285714286, 'F1_Score': 0.9229813664596274, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GAT_27012026', 'model_type': 'GAT', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GAT(
+    (convs): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+      (1): GATConv(64, 32, heads=1)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+GAT_27012026,GAT,5,"{'MAE': 0.6901475191116333, 'RMSE': np.float64(1.0533322138921206), 'R2': 0.31342965364456177, 'Accuracy': 0.8571428571428571, 'F1_Score': 0.8273809523809523, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(2), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'GAT_27012026', 'model_type': 'GAT', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_GAT(
+    (convs): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+      (1): GATConv(64, 32, heads=1)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+SAGE_27012026,SAGE,1,"{'MAE': 0.578563928604126, 'RMSE': np.float64(0.7470498873841844), 'R2': 0.45201224088668823, 'Accuracy': 0.7333333333333333, 'F1_Score': 0.6205128205128205, 'True_Negatives': np.int64(0), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(4), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'SAGE_27012026', 'model_type': 'SAGE', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_SAGE(
+    (convs): ModuleList(
+      (0): SAGEConv(10, 32, aggr=lstm)
+      (1): SAGEConv(32, 32, aggr=lstm)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+SAGE_27012026,SAGE,2,"{'MAE': 0.8159168362617493, 'RMSE': np.float64(0.975018432638576), 'R2': 0.641785204410553, 'Accuracy': 1.0, 'F1_Score': 1.0, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(0), 'True_Positives': np.int64(13)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'SAGE_27012026', 'model_type': 'SAGE', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_SAGE(
+    (convs): ModuleList(
+      (0): SAGEConv(10, 32, aggr=lstm)
+      (1): SAGEConv(32, 32, aggr=lstm)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+SAGE_27012026,SAGE,3,"{'MAE': 0.8521324992179871, 'RMSE': np.float64(1.0958331297860966), 'R2': 0.7363967895507812, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9320574162679426, 'True_Negatives': np.int64(5), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'SAGE_27012026', 'model_type': 'SAGE', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_SAGE(
+    (convs): ModuleList(
+      (0): SAGEConv(10, 32, aggr=lstm)
+      (1): SAGEConv(32, 32, aggr=lstm)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+SAGE_27012026,SAGE,4,"{'MAE': 0.6329969763755798, 'RMSE': np.float64(0.7947769970287915), 'R2': 0.7424252033233643, 'Accuracy': 0.9285714285714286, 'F1_Score': 0.9229813664596274, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'SAGE_27012026', 'model_type': 'SAGE', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_SAGE(
+    (convs): ModuleList(
+      (0): SAGEConv(10, 32, aggr=lstm)
+      (1): SAGEConv(32, 32, aggr=lstm)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+SAGE_27012026,SAGE,5,"{'MAE': 0.7524085640907288, 'RMSE': np.float64(1.0606405030681494), 'R2': 0.303869366645813, 'Accuracy': 0.9285714285714286, 'F1_Score': 0.9229813664596274, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'SAGE_27012026', 'model_type': 'SAGE', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): GNN_SAGE(
+    (convs): ModuleList(
+      (0): SAGEConv(10, 32, aggr=lstm)
+      (1): SAGEConv(32, 32, aggr=lstm)
+    )
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+STGNN_27012026,STGNN,1,"{'MAE': 0.6339088678359985, 'RMSE': np.float64(0.8573706053262334), 'R2': 0.27821338176727295, 'Accuracy': 0.6666666666666666, 'F1_Score': 0.5866666666666667, 'True_Negatives': np.int64(0), 'False_Negatives': np.int64(1), 'False_Positives': np.int64(4), 'True_Positives': np.int64(10)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'STGNN_27012026', 'model_type': 'STGNN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): STGNN(
+    (gcn_layers): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+    )
+    (lstm): LSTM(64, 32, batch_first=True)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+STGNN_27012026,STGNN,2,"{'MAE': 0.877025842666626, 'RMSE': np.float64(1.1671603668204835), 'R2': 0.4866909384727478, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9234567901234567, 'True_Negatives': np.int64(1), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(13)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'STGNN_27012026', 'model_type': 'STGNN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): STGNN(
+    (gcn_layers): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+    )
+    (lstm): LSTM(64, 32, batch_first=True)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+STGNN_27012026,STGNN,3,"{'MAE': 0.7370894551277161, 'RMSE': np.float64(0.9992688009150685), 'R2': 0.7808070778846741, 'Accuracy': 0.9333333333333333, 'F1_Score': 0.9320574162679426, 'True_Negatives': np.int64(5), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(9)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'STGNN_27012026', 'model_type': 'STGNN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): STGNN(
+    (gcn_layers): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+    )
+    (lstm): LSTM(64, 32, batch_first=True)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+STGNN_27012026,STGNN,4,"{'MAE': 0.6487841010093689, 'RMSE': np.float64(0.8591492096181619), 'R2': 0.6990114450454712, 'Accuracy': 0.9285714285714286, 'F1_Score': 0.9229813664596274, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(0), 'False_Positives': np.int64(1), 'True_Positives': np.int64(11)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'STGNN_27012026', 'model_type': 'STGNN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): STGNN(
+    (gcn_layers): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+    )
+    (lstm): LSTM(64, 32, batch_first=True)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"
+STGNN_27012026,STGNN,5,"{'MAE': 0.6947516202926636, 'RMSE': np.float64(0.9352416175623669), 'R2': 0.45874494314193726, 'Accuracy': 0.8571428571428571, 'F1_Score': 0.8571428571428571, 'True_Negatives': np.int64(2), 'False_Negatives': np.int64(1), 'False_Positives': np.int64(1), 'True_Positives': np.int64(10)}","{'epochs': 500, 'lr': 0.01, 'paciencia': 50, 'max_restarts': 3, 'model_name': 'STGNN_27012026', 'model_type': 'STGNN', 'input_dim': 10, 'output_dim': 1, 'hidden_dim': 32, 'dropout': 0.2, 'num_layers': 2, 'type_stgnn': 'GAT'}","AdaptiveModel(
+  (model): STGNN(
+    (gcn_layers): ModuleList(
+      (0): GATConv(10, 32, heads=2)
+    )
+    (lstm): LSTM(64, 32, batch_first=True)
+    (fc): Linear(in_features=32, out_features=1, bias=True)
+  )
+  (fc): Linear(in_features=32, out_features=1, bias=True)
+)"

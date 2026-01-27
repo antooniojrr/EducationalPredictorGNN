@@ -1,3 +1,8 @@
 *.zip
 .vscode/
-__pycache__/
+*/__pycache__/
+venv/
+env/
+data/models/
+data/metrics/
+data/processed/

@@ -24,7 +24,6 @@ class GraphCreator:
         """
 
         self.data_loader = dl
-  
     
     def create_graph(self,cat_opt=None, sim_profile: str = 'a&g', k_neighbors=5, dyn_graph=True) -> Data:
         
@@ -159,6 +158,12 @@ class GraphCreator:
             g = torch.load(path, weights_only=False)
         #print(f"Grafo cargado con {g.num_nodes} nodos y {g.num_edges} aristas.")
         return g
+    
+    def get_features_names(self) -> list[str]:
+        """
+        Devuelve una lista con los nombres de las features en el grafo actual.
+        """
+        return self.data_loader.FEATURE_NAMES
     
 # --- Para testeo ---
 if __name__ == "__main__":
