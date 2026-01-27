@@ -34,6 +34,7 @@ Implementación modular de modelos de Estado del Arte (SOTA) comparables bajo el
     * *Early Stopping*.
     * **Shake & Restart:** Mecanismo avanzado que inyecta ruido a los pesos y reinicia el optimizador si el modelo cae en mínimos locales (colapso a la media).
 * **Métricas Completas:** Evaluación simultánea de Regresión ($R^2$, MAE, RMSE) y Clasificación (Accuracy, F1-Score para detección de riesgo).
+* **Entrenamiento de Modelos Flexibles:** Puede entrenar modelos para que sean útiles en entradas de datos temporales incompletas (menos semanas).
 
 ### 4. Visualización y Análisis (`graphTester.py`, `predictionsVisualizer.py`)
 * **Análisis de Homofilia:** Métricas para cuantificar si "los iguales se juntan con iguales" (Assortativity, Dirichlet Energy).
