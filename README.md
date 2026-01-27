@@ -28,7 +28,7 @@ Implementación modular de modelos de Estado del Arte (SOTA) comparables bajo el
 * **GNN Espacio-Temporal (Spatio-Temporal):**
     * `STGNN`: Arquitectura híbrida personalizada que combina convoluciones gráficas frame a frame con una LSTM para capturar la evolución temporal de los embeddings sociales.
 
-### 3. Entrenamiento Robusto y Validación
+### 3. Entrenamiento Robusto y Validación (, `modelTrainer.py`, `modelTester.py`)
 * **Validación Cruzada (K-Fold Cross-Validation):** Evaluación rigurosa (k=5) para garantizar la robustez de los resultados.
 * **Estrategias Anti-Overfitting:**
     * *Early Stopping*.
@@ -40,6 +40,8 @@ Implementación modular de modelos de Estado del Arte (SOTA) comparables bajo el
 * **Visualización de Grafos:** Generación de GIFs para observar la evolución de las conexiones entre alumnos.
 * **Gráficas de Rendimiento:** Scatter plots (Predicción vs Realidad) y Line plots ordenados para diagnosticar el comportamiento del modelo.
 
+### 5. Estudio de Influencia de Features y Weeks (Explainability) (`modelExplainability.py`)
+* **Ablation Studies:** Evaluación del impacto de las diferentes features estudiadas y semanas registradas
 ---
 
 ## ⚙️ Configuraciones Probadas
