@@ -152,6 +152,9 @@ Definida en `graphCreator.py` y `main.py`:
     python src/main.py
     ```
 
+## ToDo list
+* [ ] Probar otros perfiles de similitud para el grafo
+
 ---
 *Trabajo de Fin de Grado - Ingeniería Informática y Matemáticas*
 
