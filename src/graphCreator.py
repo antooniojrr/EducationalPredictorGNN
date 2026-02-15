@@ -16,7 +16,7 @@ y calculada por algoritmo k-NN.
 Su método principal será create_graph(), que devolverá un objeto Data de PyG con el grafo temporal de estudiantes.
 """
 class GraphCreator:
-    SIM_PROFILES = ['a', 'g', 'a&g', 'f3w']
+    SIM_PROFILES = ['a', 'g', 'a&g', 'f3w', 'all', 'surveys']  # Perfiles de similitud disponibles
 
     def __init__(self, semana_final: int = None):
         """
@@ -43,12 +43,12 @@ class GraphCreator:
         self.data = Data(x=self.X, edge_index=edge_index, y=self.Y)
 
         # Si es dinámico, crear lista de edge_index por semana
-        if dyn_graph and cat_opt == 'Temp':
+        if dyn_graph and cat_opt == 'Temp' and sim_profile not in ['f3w', 'g']: 
             print(">>> Generando grafo dinámico semanal...")
             dynamic_edge_indices = []
         
             for t in range(self.X.shape[1]):  
-                edge_index_t = self.create_adj_matrix(sim_profile='a&g', raw_comps=raw_comps, k=k_neighbors, t=t)
+                edge_index_t = self.create_adj_matrix(sim_profile=sim_profile, raw_comps=raw_comps, k=k_neighbors, t=t)
                 
                 dynamic_edge_indices.append(edge_index_t)
             
@@ -100,7 +100,7 @@ class GraphCreator:
 
                 grades_feat = None
                 if active_weeks.numel() > 0:
-                   grades_feat = grades_flat[:, active_weeks]/10.0  # Filtrar solo semanas activas
+                   grades_feat = grades_flat[:, active_weeks]
                    if grades_feat.dim() == 1:
                         grades_feat = grades_feat.unsqueeze(1)
 
@@ -119,33 +119,82 @@ class GraphCreator:
             
             case 'g':
                 grades_flat = raw_comps[1].squeeze(-1)  # Notas prácticas
+
                 if t and t < grades_flat.shape[1]:
                     grades_flat = grades_flat[:, :t+1]
 
                 week_sum = grades_flat.sum(dim=0)
                 active_weeks = torch.nonzero(week_sum>0).squeeze()
 
-                grades_feat = grades_flat[:, active_weeks]/10.0  # Filtrar solo semanas activas
+                grades_feat = grades_flat[:, active_weeks]
 
                 similarity_profile = torch.cat([grades_feat], dim=1).numpy()
             
             case 'f3w':
                 # Usamos las features de las primeras semana para definir similitud inicial a partir de los raw_comps
                 similarity_profile = torch.empty((len(raw_comps[0]), 0))
+                if raw_comps[0].ndim != 3 or raw_comps[0].shape[1] < 3:  # Asistencia
+                    raise ValueError("Se deben proporcionar al menos 3 semanas de datos para el perfil de similitud 'f3w'.")
                 for feat in raw_comps:
                     if feat.ndim == 3:
                         feat_flat = feat[:, 0:3, :].reshape(len(feat), -1) 
                         similarity_profile = torch.cat([similarity_profile, feat_flat], dim=1)
                         
             case 'week':
-                if t is None:
-                    raise ValueError("Debes especificar la semana 't' para el perfil de similitud 'week'.")
+                if t is None or t > raw_comps[0].shape[1]:
+                    raise ValueError("Debes especificar la semana 't' valida para el perfil de similitud 'week'.")
                 
                 similarity_profile = torch.empty((len(raw_comps[0]), 0))
                 for feat in raw_comps:
                     if feat.ndim == 3:
                         feat_t = feat[:, t, :]
                         similarity_profile = torch.cat([similarity_profile, feat_t], dim=1)
+            
+            case 'all':
+                # --- 1. ASISTENCIA ---
+                att_feat = raw_comps[0].squeeze(-1)  
+                if t and t < att_feat.shape[1]:
+                    att_feat = att_feat[:, :t+1]
+
+                # --- 2. NOTAS ---
+                grades_flat = raw_comps[1].squeeze(-1)
+                if t and t < grades_flat.shape[1]:
+                    grades_flat = grades_flat[:, :t+1]
+
+                week_sum = grades_flat.sum(dim=0)
+                active_weeks = torch.nonzero(week_sum>0).squeeze()
+
+                grades_feat = None
+                if active_weeks.numel() > 0:
+                    grades_feat = grades_flat[:, active_weeks]
+                    if grades_feat.dim() == 1:
+                        grades_feat = grades_feat.unsqueeze(1)
+                else:
+                    grades_feat = torch.empty((grades_flat.shape[0], 0))
+                
+                # --- 3. ENCUESTAS (EL FIX ESTÁ AQUÍ) ---
+                surveys_feat = raw_comps[2] # Shape [N, Weeks, Features]
+                
+                # Recortar temporalmente primero
+                if t and t < surveys_feat.shape[1]:
+                    surveys_feat = surveys_feat[:, :t+1, :]
+                
+                # APLANAR: Convertir [N, Weeks, Feat] -> [N, Weeks*Feat]
+                # Mantenemos la dim 0 (alumnos) y aplanamos el resto
+                surveys_flat = surveys_feat.reshape(surveys_feat.shape[0], -1)
+
+                # --- 4. CONCATENACIÓN ---
+                # Concatenamos todo. Convertimos a numpy si el resto lo estás manejando así.
+                # Nota: att_feat y grades_feat son tensores, surveys_flat es tensor.
+                
+                similarity_profile = torch.cat([att_feat, grades_feat, surveys_flat], dim=1).numpy()
+
+            case 'surveys':
+                surveys_feat = raw_comps[2]
+                if t and t < surveys_feat.shape[1]:
+                    surveys_feat = surveys_feat[:, :t+1, :]
+                surveys_flat = surveys_feat.reshape(surveys_feat.shape[0], -1)
+                similarity_profile = surveys_flat.numpy()
 
             case 'default':
                 raise ValueError("Perfil de similitud no reconocido.")
@@ -162,9 +211,9 @@ class GraphCreator:
         for profile in self.SIM_PROFILES:
             for cat_opt in self.data_loader.CAT_OPTIONS:
                 if cat_opt == 'Temp':
-                    print(f"\nCreando grafo para cat_opt: {cat_opt} (Dynamic = False) y perfil de similitud: {profile}...")
+                    print(f"\nCreando grafo para cat_opt: {cat_opt} (Dynamic = False) y perfil de similitud: {profile} ...")
                     self.create_graph(cat_opt=cat_opt, sim_profile=profile, dyn_graph=False)
-                    print(f"\nCreando grafo para cat_opt: {cat_opt} (Dynamic = True) y perfil de similitud: {profile}...")
+                    print(f"\nCreando grafo para cat_opt: {cat_opt} (Dynamic = True) y perfil de similitud: {profile} ...")
                     self.create_graph(cat_opt=cat_opt, sim_profile=profile, dyn_graph=True)
                 else:
                     print(f"\nCreando grafo para cat_opt: {cat_opt} y perfil de similitud: {profile}...")
@@ -190,9 +239,8 @@ class GraphCreator:
         """
         return self.data_loader.FEATURE_NAMES
     
-# --- Para testeo ---
+
 if __name__ == "__main__":
-    # Ajusta la ruta a tu carpeta de datos
     loader = GraphCreator()
     loader.create_all_graphs()
 

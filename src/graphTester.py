@@ -4,6 +4,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
 import pandas as pd
 import networkx as nx
+import numpy as np
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -47,7 +48,7 @@ class GraphTester:
             print("TEST DE AISLAMIENTO: No hay nodos aislados en el grafo.")
 
         # Comprobar la varianza de las tags de los nodos adyacentes
-        var, std = self.calculate_neighbor_variance()
+        var, std = self.calc_neighbor_variance()
         metrics['neighbor_variance'] = var
         metrics['neighbor_std_dev'] = std
 
@@ -68,8 +69,11 @@ class GraphTester:
         print(f"TEST DE OUTLIERS: Se han detectado {len(outliers)} ({len(outliers)/self.graph.num_nodes*100:.2f}%) alumnos con notas considerablemente distintas a sus vecinos (>3 puntos).")
 
         # Comprobar conexiones en cada snapshot (si es dinámico)
+        
+        var_semanal = None
         if hasattr(self.graph, 'dynamic_edge_indices'):
             print("TEST DE DINAMICIDAD: Comprobando conexiones en cada snapshot...")
+            var_semanal = []
             acc_var = 0.0
             acc_std = 0.0
             max_var = -float('inf')
@@ -80,7 +84,8 @@ class GraphTester:
                 num_connected_t = connected_nodes_t.size(0)
                 num_isolated_t = self.graph.num_nodes - num_connected_t
 
-                var, std = self.calculate_neighbor_variance(week=t)
+                var, std = self.calc_neighbor_variance(week=t)
+                var_semanal.append(var)
                 if var > max_var:
                     max_var = var
                 if var < min_var:
@@ -101,7 +106,7 @@ class GraphTester:
         
         print("TEST DE HOMOFILIA GLOBAL:")
         # Calcular homofilia global
-        homophily = self.calculate_grade_homophily()
+        homophily = self.calc_grade_homophily()
         metrics['grade_homophily'] = homophily
         print(f"\t📊 Correlación (Homofilia) Notas-Vecinos: {homophily:.4f}")
 
@@ -115,23 +120,34 @@ class GraphTester:
         metrics['dirichlet_energy'] = dirichlet_energy
         print(f"\t⚡ Energía de Dirichlet Media: {dirichlet_energy:.4f} (Más bajo = Mejor suavidad entre vecinos)")
 
-        return metrics
+        # Calcular conectividad algebraica
+        algebraic_connectivity = self.calc_algebraic_connectivity()
+        metrics['algebraic_connectivity'] = algebraic_connectivity
+        print(f"\t🔌 Conectividad Algebraica: {algebraic_connectivity:.4f} (Más alto = Grafo más conectado)")
+
+        if var_semanal:
+            return metrics, var_semanal
+        else:
+            return metrics, None
         
     def test_all_graphs(self):
         """Función para testear todos los grafos en la carpeta GRAPH_DIR."""
         graphs = [f for f in os.listdir(GRAPH_DIR) if f.endswith('.pt')]
         all_metrics = {}
+        all_var_semanal = {}
         
         for g in graphs:
             print(f"\n================= TESTEANDO GRAFO: {g} =================")
             self.graph_path = os.path.join(GRAPH_DIR, g)
             self.graph: Data = self.load_graph()
-            metrics = self.test_graph(graph_path=self.graph_path)
+            metrics, var_semanal = self.test_graph(graph_path=self.graph_path)
+            if var_semanal:
+                all_var_semanal[g] = var_semanal
             all_metrics[g] = metrics
         
-        return all_metrics
+        return all_metrics, all_var_semanal
         
-    def calculate_neighbor_variance(self, week: int = None):
+    def calc_neighbor_variance(self, week: int = None):
         """
         Calcula la varianza media de las notas de los vecinos para evaluar la calidad del grafo.
     
@@ -210,7 +226,7 @@ class GraphTester:
                 
         return outliers
 
-    def calculate_grade_homophily(self):
+    def calc_grade_homophily(self):
         """Calcula la correlación entre nota del estudiante y nota media de sus vecinos."""
         src, dst = self.graph.edge_index
         y = self.graph.y.squeeze()
@@ -261,6 +277,23 @@ class GraphTester:
         
         return mean_energy
     
+    def calc_algebraic_connectivity(self):
+        """Calcula y muestra la conectividad algebraica del grafo."""
+        
+        G = to_networkx(self.graph, to_undirected=True)
+        
+        laplacian_matrix = nx.laplacian_matrix(G).toarray()
+        
+        eigenvalues = np.linalg.eigvalsh(laplacian_matrix)
+        
+        if len(eigenvalues) > 1:
+            algebraic_connectivity = eigenvalues[1]
+        else:
+            algebraic_connectivity = 0.0
+
+        return algebraic_connectivity
+
+
     def _select_graph(self):
         """Función para listar los grafos guardados en la carpeta correspondiente y permitir al usuario seleccionar uno."""
         graphs = [f for f in os.listdir(GRAPH_DIR) if f.endswith('.pt')]
@@ -285,6 +318,7 @@ class GraphTester:
         df.to_csv(output_path)
         print(f"Métricas guardadas en {output_path}")
     
+
     ###################### VISUALIZACIÓN DE MÉTRICAS ######################
     # Función para extraer qué tipo de grafo es (Asistencia, Notas, Híbrido...)
     def parse_info(self,filename):
@@ -296,9 +330,9 @@ class GraphTester:
         # --- A. ESTRATEGIA DE PROCESAMIENTO ---
         method_code = parts[0]
         method_map = {
-            'Temp': 'Temporal\n(Secuencia completa)',
-            'MP': 'Mean Pooling\n(Media semanal)',
-            'Concat': 'Concatenation\n(Aplanado)',
+            'Temp': 'Temporal (Secuencia completa)',
+            'MP': 'Mean Pooling (Media semanal)',
+            'Concat': 'Concatenation (Aplanado)',
             'LDS': 'LDS (Learnable)'
         }
         method_label = method_map.get(method_code, method_code)
@@ -308,9 +342,10 @@ class GraphTester:
         data_map = {
             'a': 'Solo Asistencia',
             'g': 'Solo Notas',
-            'ag': 'Híbrido (A+N)',
-            'ga': 'Híbrido (A+N)',
-            'f3w': 'Primeras 3 Semanas'
+            'a&g': 'Híbrido (A+N)',
+            'f3w': 'Primeras 3 Semanas',
+            'surveys': 'Solo Encuestas',
+            'all': 'Todos los Datos'
         }
         data_label = data_map.get(data_code, data_code)
         
@@ -464,6 +499,77 @@ class GraphTester:
         print(f"✅ Gráfico guardado: {save_path}")
         plt.close()
 
+    # ==========================================
+    # GRÁFICO DE CONECTIVIDAD ALGEBRAICA
+    # ==========================================
+    def plot_algebraic_connectivity(self, df, save_path=METRICS_MEDIA_DIR+'grafico_conectividad.png'):
+        """
+        Genera el gráfico de Conectividad Algebraica.
+        Mide la robustez del grafo. Cuanto más alto, más conectado es el grafo.
+        """
+        plt.figure(figsize=(10, 6))
+        sns.set_style("whitegrid")
+        
+        sns.barplot(
+            data=df,
+            x='Datos',
+            y='algebraic_connectivity',
+            hue='Estrategia',
+            palette='viridis',
+            edgecolor='black'
+        )
+        
+        plt.title('Conectividad Algebraica\n¿El grafo es robusto y bien conectado?', 
+                fontsize=14, fontweight='bold')
+        plt.ylabel('Conectividad Algebraica (Mayor es mejor)', fontsize=12)
+        plt.xlabel('Fuente de Datos', fontsize=12)
+        plt.legend(title='Estrategia', loc='upper right')
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=300)
+        print(f"✅ Gráfico guardado: {save_path}")
+        plt.close()
+
+    # ==========================================
+    # GRÁFICO DE VARIANZA TEMPORAL (DINÁMICO)
+    # ==========================================
+    def plot_temporal_variance(self, df, save_path=METRICS_MEDIA_DIR+'grafico_temporal_variance.png'):
+        """
+        Genera un gráfico de líneas que muestra cómo varía la varianza de vecinos a lo largo de las semanas.
+        Solo aplicable para grafos dinámicos.
+        """
+        plt.figure(figsize=(10, 6))
+        sns.set_style("whitegrid")
+        
+        # Filtramos solo los grafos dinámicos (que tienen las métricas de varianza temporal)
+        dynamic_df = df[df['Estrategia'].str.contains('Temporal')]
+        
+        if dynamic_df.empty:
+            print("No hay grafos dinámicos para graficar la varianza temporal.")
+            return
+        
+        # Aquí asumimos que tenemos columnas como 'dynamic_avg_variance', 'dynamic_max_variance', 'dynamic_min_variance'
+        sns.lineplot(
+            data=dynamic_df,
+            x='Datos',
+            y='dynamic_avg_variance',
+            hue='Estrategia',
+            marker='o',
+            palette='tab10'
+        )
+        
+        plt.title('Evolución de la Varianza de Vecinos en Grafos Dinámicos\n¿Cómo cambia la coherencia semanalmente?', 
+                fontsize=14, fontweight='bold')
+        plt.ylabel('Varianza Media de Vecinos (Menor es mejor)', fontsize=12)
+        plt.xlabel('Fuente de Datos', fontsize=12)
+        plt.legend(title='Estrategia', loc='upper right')
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=300)
+        print(f"✅ Gráfico guardado: {save_path}")
+        plt.close()
+
+
+
     def visualize_metrics(self, metrics_path: str):
         """Genera gráficos a partir del archivo de métricas guardado."""
         
@@ -489,14 +595,39 @@ class GraphTester:
         self.plot_outliers(df_metrics)
         self.plot_assortativity(df_metrics)
         self.plot_dirichlet(df_metrics)
+        self.plot_algebraic_connectivity(df_metrics)
+        self.plot_temporal_variance(df_metrics)
         
-        print("\n🎉 ¡Proceso completado! Tienes 5 nuevas imágenes.")
+        print("\n🎉 ¡Proceso completado! Tienes 6 nuevas imágenes.")
+
+    def visualize_temporal_variance(self, var_semanal_dict):
+        """Genera un gráfico de líneas que muestra cómo varía la varianza de vecinos a lo largo de las semanas para cada grafo dinámico."""
+
+        plt.figure(figsize=(10, 6))
+        sns.set_style("whitegrid")
         
+        for graph_name, var_semanal in var_semanal_dict.items():
+            if var_semanal:
+                name = self.parse_info(graph_name)[1]
+                weeks = list(range(len(var_semanal)))
+                plt.plot(weeks, var_semanal, marker='o', label=name)
+        
+        plt.title('Evolución de la Varianza de Vecinos en Grafos Dinámicos\n¿Cómo cambia la coherencia semanalmente?', 
+                fontsize=14, fontweight='bold')
+        plt.ylabel('Varianza Media de Vecinos (Menor es mejor)', fontsize=12)
+        plt.xlabel('Semana', fontsize=12)
+        plt.legend(title='Grafo', loc='upper right')
+        plt.tight_layout()
+        save_path = METRICS_MEDIA_DIR + 'grafico_temporal_variance.png'
+        plt.savefig(save_path, dpi=300)
+        print(f"✅ Gráfico guardado: {save_path}")
+        plt.close()
 
 if __name__== "__main__":
     
     tester = GraphTester()
-    metrics = tester.test_all_graphs()
+    metrics, var_semanal = tester.test_all_graphs()
     path_metrics = "data/metrics/graph_metrics.csv"
     tester.save_metrics(metrics, path_metrics)
     tester.visualize_metrics(path_metrics)
+    tester.visualize_temporal_variance(var_semanal)
