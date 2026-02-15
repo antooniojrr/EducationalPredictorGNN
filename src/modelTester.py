@@ -103,14 +103,17 @@ def main_tester(flexible_models=False, patient_mode=False, regen_graphs=False):
             'Flexible':         cfg['flexible'],
             'MAE_Mean':         df_fold['Metrics'].apply(lambda x: x['MAE']).mean(),
             'MAE_Std':          df_fold['Metrics'].apply(lambda x: x['MAE']).std(),
+            'MAPE_Mean':        df_fold['Metrics'].apply(lambda x: x['MAPE']).mean(),
+            'MAPE_Std':         df_fold['Metrics'].apply(lambda x: x['MAPE']).std(),
             'R2_Mean':          df_fold['Metrics'].apply(lambda x: x['R2']).mean(),
             'Acc_Mean':         df_fold['Metrics'].apply(lambda x: x['Accuracy']).mean(),
             'F1_Mean':          df_fold['Metrics'].apply(lambda x: x['F1_Score']).mean(),
             'Best_R2':          best_metrics['R2'],
-            'Best_MAE':         best_metrics['MAE']
+            'Best_MAE':         best_metrics['MAE'],
+            'Best_MAPE':        best_metrics['MAPE']
         }
         summary_results.append(summary)
-        print(f"📊 Resumen {tipo_modelo} ({'Flexible' if cfg['flexible'] else 'Rígido'}): MAE = {summary['MAE_Mean']:.3f} ± {summary['MAE_Std']:.3f}\n")
+        print(f"📊 Resumen {tipo_modelo} ({'Flexible' if cfg['flexible'] else 'Rígido'}): MAE = {summary['MAE_Mean']:.3f} ± {summary['MAE_Std']:.3f}, MAPE = {summary['MAPE_Mean']:.3f} ± {summary['MAPE_Std']:.3f}\n")
 
         for r in fold_metrics:
             aux = {
@@ -121,7 +124,8 @@ def main_tester(flexible_models=False, patient_mode=False, regen_graphs=False):
                 'MAE': r['Metrics']['MAE'],
                 'R2': r['Metrics']['R2'],
                 'Accuracy': r['Metrics']['Accuracy'],
-                'F1_Score': r['Metrics']['F1_Score']
+                'F1_Score': r['Metrics']['F1_Score'],
+                'MAPE': r['Metrics']['MAPE']
             }
             all_results.append(aux)
         

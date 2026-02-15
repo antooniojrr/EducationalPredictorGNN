@@ -191,4 +191,5 @@ class GraphVisualizer:
 
 if __name__ == "__main__":
     visualizer = GraphVisualizer()
-    visualizer.visualize_all_graphs()
+    #visualizer.visualize_all_graphs()
+    visualizer.visualize_dynamic(path_grafo=GRAPH_DIR + 'Temp_a&g_dynamic_graph_5NN.pt', name='grafo_dinamico', clean_frames=False)

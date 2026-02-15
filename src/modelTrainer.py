@@ -3,7 +3,7 @@ import torch
 from model import AdaptiveModel
 from torch_geometric.data import Data
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, f1_score, confusion_matrix
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, f1_score, confusion_matrix, mean_absolute_percentage_error
 import os
 
 # ============================================================================
@@ -42,16 +42,15 @@ class EntrenadorGNN:
             for param in model.parameters():
                 noise = torch.randn_like(param) * std
                 param.add_(noise)
-        print(f"🫨 SHAKE! Ruido inyectado a los pesos (std={std})")
     
-    def entrenar(self, data, train_idx = None, test_idx = None, config=None):
+    def entrenar(self, data, train_idx = None, test_idx = None, config=None, verbose=True):
         if config and config.get('flexible', False):
-            return self.entrenar_flexible(data, train_idx, test_idx, config)
+            return self.entrenar_flexible(data, train_idx, test_idx, config, verbose=verbose)
         else:
-            return self.entrenar_rigido(data, train_idx, test_idx, config)
-
+            return self.entrenar_rigido(data, train_idx, test_idx, config, verbose=verbose)
+        
     def entrenar_rigido(self, data, train_idx = None, test_idx = None, 
-                          config=None):
+                          config=None, verbose=True):
         """
         Args:
             data: Objeto Data de PyG.
@@ -109,7 +108,7 @@ class EntrenadorGNN:
         restarts_done = 0
         mejor_modelo_state = None
         
-        print(f"🚀 Iniciando training: {cfg['model_name']} para {cfg['epochs']} epochs...")
+        if verbose: print(f"🚀 Iniciando training: {cfg['model_name']} para {cfg['epochs']} epochs...")
         
         for epoch in range(cfg['epochs']):
             # --- TRAINING ---
@@ -139,7 +138,7 @@ class EntrenadorGNN:
             if epoch % 10 == 0:
                 test_mae = torch.mean(torch.abs(pred[test_idx] - data.y[test_idx])).item()
                 train_mae = torch.mean(torch.abs(pred[train_idx] - data.y[train_idx])).item()
-                print(f"Epoch {epoch:3d} | R2: {current_r2:.4f} | Train Loss: {loss.item():.4f} | Train MAE: {train_mae:.4f} | Test MAE: {test_mae:.4f}")
+                if verbose: print(f"Epoch {epoch:3d} | R2: {current_r2:.4f} | Train Loss: {loss.item():.4f} | Train MAE: {train_mae:.4f} | Test MAE: {test_mae:.4f}")
 
             # Guardamos el modelo si mejora el TEST R2 (no el train loss)
             if current_r2 > mejor_metric_test:
@@ -151,7 +150,7 @@ class EntrenadorGNN:
                 contador_paciencia += 1
                 if contador_paciencia >= cfg['paciencia']:
                     if restarts_done < cfg['max_restarts']:
-                        print(f"🛑 Paciencia agotada en epoch {epoch}. Intentando revivir...")
+                        if verbose: print(f"🛑 Paciencia agotada en epoch {epoch}. Intentando revivir...")
                         
                         # 1. Cargar el mejor estado hasta ahora (para no agitar basura)
                         if mejor_modelo_state:
@@ -159,27 +158,27 @@ class EntrenadorGNN:
                         
                         # 2. Hacer Shake (añadir ruido)
                         self.shake_weights(modelo, std=0.08 * (0.8 ** restarts_done)) # Ruido decreciente
-                        
+                        if verbose: print(f"🫨 SHAKE! Ruido inyectado a los pesos")
                         # 3. Reiniciar optimizador con LR más bajo
                         current_lr = optimizer.param_groups[0]['lr']
                         new_lr = current_lr * 0.5
                         optimizer = torch.optim.Adam(modelo.parameters(), lr=new_lr, weight_decay=1e-4)
                         
-                        print(f"🔄 RESTART #{restarts_done+1}: LR bajado a {new_lr:.5f}, Paciencia reseteada.")
+                        if verbose: print(f"🔄 RESTART #{restarts_done+1}: LR bajado a {new_lr:.5f}, Paciencia reseteada.")
 
                         contador_paciencia = 0
                         restarts_done += 1
                     else:
-                        print(f"❌ Máximos restarts alcanzados. Terminando entrenamiento en epoch {epoch}.")
+                        if verbose: print(f"❌ Máximos restarts alcanzados. Terminando entrenamiento en epoch {epoch}.")
                         break
         
         # --- RESTAURAR MEJOR MODELO ---
         if mejor_modelo_state:
             modelo.load_state_dict(mejor_modelo_state)
-        print(f"✅ Entrenamiento finalizado. Mejor R2 en Test: {mejor_metric_test:.4f}")
+        if verbose: print(f"✅ Entrenamiento finalizado. Mejor R2 en Test: {mejor_metric_test:.4f}")
 
         # --- REPORTE FINAL ---
-        print("\n📊 Evaluación Final del Mejor Modelo.")
+        if verbose: print("\n📊 Evaluación Final del Mejor Modelo.")
         modelo.eval()
         with torch.no_grad():
             pred = modelo(data)
@@ -191,7 +190,7 @@ class EntrenadorGNN:
             
             return self.calculate_metrics(test_true, test_pred, threshold=0.7), test_true, test_pred, modelo, cfg
     
-    def entrenar_flexible(self, data, train_idx = None, test_idx = None, config=None):
+    def entrenar_flexible(self, data, train_idx = None, test_idx = None, config=None, verbose=True):
         """
         Args:
             data: Objeto Data de PyG.
@@ -246,7 +245,7 @@ class EntrenadorGNN:
         restarts_done = 0
         mejor_modelo_state = None
         
-        print(f"🚀 Iniciando training con VENTANA ALEATORIA: {cfg['model_name']} para {cfg['epochs']} epochs...")
+        if verbose:print(f"🚀 Iniciando training con VENTANA ALEATORIA: {cfg['model_name']} para {cfg['epochs']} epochs...")
 
         for epoch in range(cfg['epochs']):
             modelo.train()
@@ -278,7 +277,7 @@ class EntrenadorGNN:
             if epoch % 10 == 0:
                 test_mae = torch.mean(torch.abs(pred[test_idx] - data.y[test_idx])).item()
                 train_mae = torch.mean(torch.abs(pred[train_idx] - data.y[train_idx])).item()
-                print(f"Epoch {epoch:3d} | R2: {current_r2:.4f} | Train Loss: {loss.item():.4f} | Train MAE: {train_mae:.4f} | Test MAE: {test_mae:.4f}")
+                if verbose:print(f"Epoch {epoch:3d} | R2: {current_r2:.4f} | Train Loss: {loss.item():.4f} | Train MAE: {train_mae:.4f} | Test MAE: {test_mae:.4f}")
 
             # Guardamos el modelo si mejora el TEST R2 (no el train loss)
             if current_r2 > mejor_metric_test:
@@ -290,7 +289,7 @@ class EntrenadorGNN:
                 contador_paciencia += 1
                 if contador_paciencia >= cfg['paciencia']:
                     if restarts_done < cfg['max_restarts']:
-                        print(f"🛑 Paciencia agotada en epoch {epoch}. Intentando revivir...")
+                        if verbose: print(f"🛑 Paciencia agotada en epoch {epoch}. Intentando revivir...")
                         
                         # 1. Cargar el mejor estado hasta ahora (para no agitar basura)
                         if mejor_modelo_state:
@@ -304,21 +303,21 @@ class EntrenadorGNN:
                         new_lr = current_lr * 0.5
                         optimizer = torch.optim.Adam(modelo.parameters(), lr=new_lr, weight_decay=1e-4)
                         
-                        print(f"🔄 RESTART #{restarts_done+1}: LR bajado a {new_lr:.5f}, Paciencia reseteada.")
+                        if verbose: print(f"🔄 RESTART #{restarts_done+1}: LR bajado a {new_lr:.5f}, Paciencia reseteada.")
 
                         contador_paciencia = 0
                         restarts_done += 1
                     else:
-                        print(f"❌ Máximos restarts alcanzados. Terminando entrenamiento en epoch {epoch}.")
+                        if verbose: print(f"❌ Máximos restarts alcanzados. Terminando entrenamiento en epoch {epoch}.")
                         break
 
         # --- RESTAURAR MEJOR MODELO ---
         if mejor_modelo_state:
             modelo.load_state_dict(mejor_modelo_state)
-        print(f"✅ Entrenamiento finalizado. Mejor R2 en Test: {mejor_metric_test:.4f}")
+        if verbose: print(f"✅ Entrenamiento finalizado. Mejor R2 en Test: {mejor_metric_test:.4f}")
 
         # --- REPORTE FINAL ---
-        print("\n📊 Evaluación Final del Mejor Modelo.")
+        if verbose: print("\n📊 Evaluación Final del Mejor Modelo.")
         modelo.eval()
         with torch.no_grad():
             pred = modelo(data)
@@ -396,6 +395,7 @@ class EntrenadorGNN:
         mae = mean_absolute_error(y_true_10, y_pred_10)
         mse = mean_squared_error(y_true_10, y_pred_10)
         rmse = np.sqrt(mse)
+        mape = mean_absolute_percentage_error(y_true_10, y_pred_10)
         r2 = r2_score(y_true_10, y_pred_10)
         
         # --- MÉTRICAS DE CLASIFICACIÓN (Pasar a Binario) ---
@@ -416,6 +416,7 @@ class EntrenadorGNN:
         metrics = {
             "MAE": mae,
             "RMSE": rmse,
+            "MAPE": mape,
             "R2": r2,
             "Accuracy": acc,
             "F1_Score": f1,
