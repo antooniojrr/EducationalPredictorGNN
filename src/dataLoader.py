@@ -101,7 +101,7 @@ class DataLoader:
             str | None: Opción válida dentro de CAT_OPTIONS o None si la selección es inválida.
         """
 
-        print("Opciones de cat_opt disponibles:")
+        print("A continuación se presentan las opciones de agregación temporal (cat_opt):")
         for i, opt in enumerate(self.CAT_OPTIONS):
             print(f"{i+1}. {opt}")
         
@@ -109,7 +109,7 @@ class DataLoader:
         if 0 <= choice < len(self.CAT_OPTIONS):
             return self.CAT_OPTIONS[choice]
         else:
-            print("Selección inválida.")
+            print("Selección no válida. Por favor, inténtelo de nuevo.")
             return None
 
     def _load_IDs(self):
@@ -300,16 +300,16 @@ class DataLoader:
         while not cat_opt:
             cat_opt = self._select_cat_opt()
 
-        print("\n\nCARGANDO DATOS CON OPCIÓN:", cat_opt)
+        print(f"Iniciando la carga de datos con la opción: {cat_opt}")
         
         self.students_ids = self._load_IDs()
 
         path_y = os.path.join(self.root, 'processed/tensors', 'Y.pt')
         if os.path.exists(path_y):
-            print("\t>>> Cargando Y desde archivo procesado...")
+            print("   Cargando tensor objetivo Y desde archivo procesado...")
             self.Y = torch.load(path_y)
         else:
-            print("\t>>> Cargando y procesando Y (Notas Finales)...")
+            print("   Cargando y procesando Y (notas finales)...")
             self.Y = self._load_target()
             os.makedirs(os.path.join(self.root, 'processed/tensors'), exist_ok=True)
             torch.save(self.Y, path_y)
@@ -317,13 +317,13 @@ class DataLoader:
         # --------------------------------------------------------------
         path_att = os.path.join(self.root, 'processed/tensors', 'attendance.pt')
         if os.path.exists(path_att):
-            print("\t>>> Cargando Asistencia desde archivo procesado...")
+            print("   Cargando datos de asistencia desde archivo procesado...")
             att_tensor = torch.load(path_att).numpy()
             # Recortamos en función del número de semanas actual
             if att_tensor.shape[1] > self.num_weeks:
                 att_tensor = att_tensor[:, :self.num_weeks]
         else:
-            print("\t>>> Cargando y procesando Asistencia...")
+            print("   Cargando y procesando datos de asistencia...")
             att_tensor = self._load_attendance()
             if self.num_weeks == 12:
                 torch.save(torch.tensor(att_tensor, dtype=torch.float), path_att)
@@ -331,13 +331,13 @@ class DataLoader:
         # --------------------------------------------------------------
         path_grades = os.path.join(self.root, 'processed/tensors', 'grades.pt')
         if os.path.exists(path_grades):
-            print("\t>>> Cargando Notas Parciales desde archivo procesado...")
+            print("   Cargando notas parciales desde archivo procesado...")
             grades_tensor = torch.load(path_grades).numpy()
             # Recortamos en función del número de semanas actual
             if grades_tensor.shape[1] > self.num_weeks:
                 grades_tensor = grades_tensor[:, :self.num_weeks]
         else:
-            print("\t>>> Cargando y procesando Notas Parciales...")
+            print("   Cargando y procesando notas parciales...")
             grades_tensor = self._load_grades()
             if self.num_weeks == 12:
                 torch.save(torch.tensor(grades_tensor, dtype=torch.float), path_grades)
@@ -345,13 +345,13 @@ class DataLoader:
         # --------------------------------------------------------------
         path_surveys = os.path.join(self.root, 'processed/tensors', 'surveys.pt')
         if os.path.exists(path_surveys):
-            print("\t>>> Cargando Encuestas desde archivo procesado...")
+            print("   Cargando datos de encuestas desde archivo procesado...")
             surveys_tensor = torch.load(path_surveys).numpy()
             # Recortamos en función del número de semanas actual
             if surveys_tensor.shape[1] > self.num_weeks:
                 surveys_tensor = surveys_tensor[:, :self.num_weeks, :]
         else:
-            print("\t>>> Cargando y procesando Encuestas...")
+            print("   Cargando y procesando datos de encuestas...")
             surveys_tensor = self._load_surveys()
             if self.num_weeks == 12:
                 torch.save(torch.tensor(surveys_tensor, dtype=torch.float), path_surveys)
@@ -363,18 +363,18 @@ class DataLoader:
 
         path_x = os.path.join(self.root, 'processed/tensors', "X_"+cat_opt+".pt")
         if os.path.exists(path_x):
-            print(f"\t>>> Cargando X ({cat_opt}) desde archivo procesado...")
+            print(f"   Cargando tensor de características X ({cat_opt}) desde archivo procesado...")
             self.X = torch.load(path_x)
             # Recortamos en función del número de semanas actual
             if self.X.shape[1] > self.num_weeks and cat_opt == 'Temp':
                 self.X = self.X[:, :self.num_weeks, :]
             raw_comps = [att_expanded, grades_expanded, surv_expanded]
-            print(f"Dimensiones finales de X: {self.X.shape}, Y: {self.Y.shape}")
-            print(f"Dimensiones componentes crudas: {[comp.shape for comp in raw_comps]}")
+            print(f"Dimensiones finales de X: {self.X.shape}; de Y: {self.Y.shape}")
+            print(f"Dimensiones de las componentes originales: {[comp.shape for comp in raw_comps]}")
             return cat_opt, self.X, self.Y, raw_comps
         
         else:
-            print(f"\t>>> Cargando y procesando datos (Modo: {cat_opt})...")
+            print(f"   Cargando y procesando datos (modo: {cat_opt})...")
             
             X_base = torch.cat([att_expanded, grades_expanded, surv_expanded], dim=2)
 
@@ -394,8 +394,8 @@ class DataLoader:
                 torch.save(self.X, os.path.join(self.root, 'processed/tensors', "X_"+cat_opt+".pt"))
             raw_comps = [att_expanded, grades_expanded, surv_expanded]
 
-            print(f"Dimensiones finales de X: {self.X.shape}, Y: {self.Y.shape}")
-            print(f"Dimensiones componentes crudas: {[comp.shape for comp in raw_comps]}")
+            print(f"Dimensiones finales de X: {self.X.shape}; de Y: {self.Y.shape}")
+            print(f"Dimensiones de las componentes originales: {[comp.shape for comp in raw_comps]}")
             return cat_opt, self.X, self.Y, raw_comps
 
     def get_X_from_file(self, cat_opt='Temporal'):
@@ -434,10 +434,10 @@ class DataLoader:
 if __name__ == "__main__":
     loader = DataLoader()
     cat_opt, X, Y, raw_comps = loader.load_data()
-    print("Tensores cargados:")
-    print(f"cat_opt: {cat_opt}")
-    print(f"X shape: {X.shape}")
+    print("Se han cargado los tensores:")
+    print(f"cat_opt utilizado: {cat_opt}")
+    print(f"Forma de X: {X.shape}")
     print(X)
-    print(f"Y shape: {Y.shape}")
+    print(f"Forma de Y: {Y.shape}")
     print(Y)
     
