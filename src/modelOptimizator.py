@@ -15,7 +15,7 @@ LR_OPTS = [0.1, 0.01, 0.005, 0.001]
 RESULTS_CSV_PATH = './data/hyperparam_opt/'
 os.makedirs(RESULTS_CSV_PATH, exist_ok=True)
 
-def grid_adjustment(tipo_modelo, flexible_models = False):
+def grid_adjustment(tipo_modelo, flexible_models = False, tipo_stgnn=None):
     # ---------------------------------------------------------
     # 1. CARGA DE DATOS
     # ---------------------------------------------------------
@@ -47,18 +47,21 @@ def grid_adjustment(tipo_modelo, flexible_models = False):
     best_config = None
     best_mean_r2 = -float('inf')
 
-    print(f"🚀 Iniciando Grid Search para {tipo_modelo}...\n")
+    print(f"🚀 Iniciando Grid Search para {tipo_modelo}{' (' + tipo_stgnn + ')' if tipo_stgnn else ''}...\n")
     for hidden_dim in HIDDEN_DIM_OPTS:
         for dropout in DROPOUT_OPTS:
             for lr in LR_OPTS:
                 print(f"Evaluando configuración: Hidden Dim={hidden_dim}, Dropout={dropout}, LR={lr}")
                 cfg = {}
-                cfg['model_name'] = f"{tipo_modelo}_{hidden_dim}_{dropout}_{lr}_{'flex' if flexible_models else ''}"
+                cfg['model_name'] = f"{tipo_modelo}{('_' + tipo_stgnn) if tipo_stgnn and tipo_modelo == 'STGNN' else ''}_{hidden_dim}_{dropout}_{lr}_{'flex' if flexible_models else ''}"
                 cfg['model_type'] = tipo_modelo
                 cfg['flexible'] = flexible_models
                 cfg['hidden_dim'] = hidden_dim
                 cfg['dropout'] = dropout
                 cfg['lr'] = lr
+
+                if tipo_modelo == 'STGNN' and tipo_stgnn:
+                    cfg['stgnn_type'] = tipo_stgnn
 
                 if flexible_models:
                     cfg['epochs'] = 1000
@@ -122,7 +125,7 @@ def grid_adjustment(tipo_modelo, flexible_models = False):
 
     # Guardamos datos en CSV
     df_results = pd.DataFrame(results_grid)
-    path = os.path.join(RESULTS_CSV_PATH, f"grid_search_results_{tipo_modelo}")
+    path = os.path.join(RESULTS_CSV_PATH, f"grid_search_results_{tipo_modelo}{'_' + tipo_stgnn if tipo_stgnn and tipo_modelo == 'STGNN' else ''}")
     if flexible_models:
         path += "_flexible"
     path += ".csv"
@@ -139,6 +142,9 @@ if __name__ == "__main__":
     elif tipo_modelo == 'temp':
         grid_adjustment('LSTM', flexible_models=flex)
         grid_adjustment('STGNN', flexible_models=flex)
+    elif tipo_modelo == 'stgnn_opt':
+        for stgnn_type in ['GCN', 'SAGE']:
+            grid_adjustment('STGNN', flexible_models=flex, tipo_stgnn=stgnn_type)
     elif tipo_modelo in modelos:
         grid_adjustment(tipo_modelo, flexible_models=flex)
     else:

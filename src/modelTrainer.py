@@ -102,6 +102,9 @@ class EntrenadorGNN:
         #    optimizer, mode='max', factor=0.5, patience=10
         #)
         
+        train_losses = []
+        val_losses = []
+
         # Variables de control
         mejor_metric_test = -float('inf') 
         contador_paciencia = 0
@@ -122,12 +125,17 @@ class EntrenadorGNN:
             loss.backward()
             optimizer.step()
             
+            train_losses.append(loss.item())
+
             # --- EVALUACIÓN (Cada época para Early Stopping) ---
             modelo.eval()
             with torch.no_grad():
                 pred = modelo(data)
+
+                val_loss = criterion(pred[test_idx], data.y[test_idx].squeeze())
+                val_losses.append(val_loss.item())
+
                 # Calculamos MAE en Test para monitorear generalización
-                # (En TFG pequeño, usamos Test como Validación)
                 y_pred_test = pred[test_idx].cpu().numpy().flatten() * 10
                 y_true_test = data.y[test_idx].cpu().numpy().flatten() * 10
                 
@@ -188,7 +196,7 @@ class EntrenadorGNN:
             test_pred = pred[test_idx].cpu().numpy().flatten()
             test_true = data.y[test_idx].cpu().numpy().flatten()
             
-            return self.calculate_metrics(test_true, test_pred, threshold=0.7), test_true, test_pred, modelo, cfg
+            return self.calculate_metrics(test_true, test_pred, threshold=0.7), test_true, test_pred, modelo, cfg, train_losses, val_losses
     
     def entrenar_flexible(self, data, train_idx = None, test_idx = None, config=None, verbose=True):
         """
@@ -239,6 +247,9 @@ class EntrenadorGNN:
         #    optimizer, mode='max', factor=0.5, patience=10
         #)
         
+        train_losses = []
+        val_losses = []
+
         # Variables de control
         mejor_metric_test = -float('inf') 
         contador_paciencia = 0
@@ -261,12 +272,17 @@ class EntrenadorGNN:
             loss.backward()
             optimizer.step()
 
+            train_losses.append(loss.item())
+
             # --- EVALUACIÓN (Cada época para Early Stopping) ---
             modelo.eval()
             with torch.no_grad():
                 pred = modelo(data)
+
+                val_loss = criterion(pred[test_idx], data.y[test_idx].squeeze())
+                val_losses.append(val_loss.item())
+
                 # Calculamos MAE en Test para monitorear generalización
-                # (En TFG pequeño, usamos Test como Validación)
                 y_pred_test = pred[test_idx].cpu().numpy().flatten() * 10
                 y_true_test = data.y[test_idx].cpu().numpy().flatten() * 10
                 
@@ -327,7 +343,7 @@ class EntrenadorGNN:
             test_pred = pred[test_idx].cpu().numpy().flatten()
             test_true = data.y[test_idx].cpu().numpy().flatten()
             
-            return self.calculate_metrics(test_true, test_pred, threshold=0.7), test_true, test_pred, modelo, cfg
+            return self.calculate_metrics(test_true, test_pred, threshold=0.7), test_true, test_pred, modelo, cfg, train_losses, val_losses
         
     def randomly_slice_data(self, data, min_weeks=4):    
         """
@@ -412,6 +428,8 @@ class EntrenadorGNN:
         
         # Matriz de confusión
         tn, fp, fn, tp = confusion_matrix(bin_true, bin_pred).ravel()
+
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         
         metrics = {
             "MAE": mae,
@@ -420,6 +438,7 @@ class EntrenadorGNN:
             "R2": r2,
             "Accuracy": acc,
             "F1_Score": f1,
+            "Recall": recall,
             "True_Negatives": tn, # Predijo suspenso, fue suspenso (Bien)
             "False_Negatives": fn, # Predijo suspenso, fue aprobado (Falsa Alarma)
             "False_Positives": fp, # Predijo aprobado, fue suspenso (PELIGRO)

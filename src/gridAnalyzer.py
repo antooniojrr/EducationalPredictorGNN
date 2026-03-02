@@ -35,7 +35,7 @@ def analyze_grid_search_results(file_path, show_plots=True):
         hue='LR', 
         col='Dropout', 
         kind='point', 
-        palette='viridis', 
+        palette='Dark2', 
         height=4, 
         aspect=1
     )
