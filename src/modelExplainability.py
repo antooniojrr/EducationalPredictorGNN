@@ -1,13 +1,22 @@
+"""
+Módulo dedicado a la explicabilidad del modelo (XAI) para entender qué features y momentos temporales son más importantes para la predicción del rendimiento académico.
+Contiene:
+- feature_importance_analysis: Función que implementa la técnica de Permutation Feature Importance para evaluar la importancia de cada variable.
+- week_importance_analysis: Función que evalúa la importancia de cada semana del curso permutando toda la información de esa semana.
+- plot_feat_importance: Función para visualizar la importancia de las features.
+- plot_week_importance: Función para visualizar la importancia temporal por semanas.
+- Un bloque principal que carga un modelo entrenado, el grafo de datos y ejecuta los análisis de importancia, generando gráficos explicativos.
+"""
+
 import torch
+from sklearn.metrics import r2_score
+#----------------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import r2_score
 import pandas as pd
-from copy import deepcopy
 import os
-
-# Importa tus clases
+#----------------------------------------------------------
 from modelTrainer import EntrenadorGNN
 from graphCreator import GraphCreator
 
@@ -16,11 +25,28 @@ os.makedirs(PATH_EXPLAINABILITY_OUTPUT, exist_ok=True)
 
 def feature_importance_analysis(model, data, feature_names=None):
     """
-    Calcula la importancia de cada feature permutando sus valores y midiendo la caída del rendimiento.
+    Calcula la importancia de cada variable de entrada mediante
+    permutation feature importance.
+
+    El procedimiento consiste en:
+        1. Calcular el rendimiento base del modelo (R²).
+        2. Permutar los valores de una feature concreta entre nodos.
+        3. Recalcular el rendimiento.
+        4. Medir la caída en R² como indicador de importancia.
+
+    Cuanto mayor sea la caída del rendimiento, mayor será la
+    relevancia de la variable para el modelo.
+
+    :param model: Modelo entrenado en modo evaluación.
+    :param data: Objeto Data que contiene x (features) e y (targets).
+                 Se asume formato temporal [N, T, F].
+    :param feature_names: Lista opcional con nombres descriptivos
+                          de las variables.
+    :return: Diccionario {feature_name: importancia}.
     """
     model.eval()
     
-    # 1. Obtener línea base (Rendimiento original)
+    # 1. Cálculo del rendimiento base
     with torch.no_grad():
         original_pred = model(data)
         y_true = data.y.cpu().numpy().flatten()
@@ -31,40 +57,30 @@ def feature_importance_analysis(model, data, feature_names=None):
     
     importances = {}
     
-    # Detectar dimensiones: [N_Alumnos, N_Semanas, N_Features]
-    # Asumimos que data.x es [N, W, F]
+    # Se asume estructura temporal [N_alumnos, N_semanas, N_features]
     num_features = data.x.shape[2]
     
-    # Si no hay nombres, generamos genéricos
     if feature_names is None:
         feature_names = [f"Feature {i}" for i in range(num_features)]
 
-    # 2. Bucle de Permutación
+    # 2. Permutación independiente de cada variable
     for i in range(num_features):
-        # Hacemos una copia profunda de los datos para no romper el original
         data_perturbed = data.clone()
         x_perturbed = data_perturbed.x.clone().cpu().numpy()
         
-        # --- LA MAGIA: Shuffle de la feature 'i' a través de todos los alumnos ---
-        # Mantenemos la estructura temporal, pero intercambiamos alumnos para esta feature específica
-        # x_perturbed[:, :, i] -> Shape [70, 12]
-        
-        feature_column = x_perturbed[:, :, i] 
-        np.random.shuffle(feature_column) # Mezclamos filas (alumnos)
+        feature_column = x_perturbed[:, :, i]
+        np.random.shuffle(feature_column)
         x_perturbed[:, :, i] = feature_column
         
-        # Devolvemos al tensor
         data_perturbed.x = torch.tensor(x_perturbed).to(data.x.device)
         
-        # 3. Evaluar modelo roto
+        # 3. Evaluación tras perturbación
         with torch.no_grad():
             pred_perturbed = model(data_perturbed)
             y_pred_new = pred_perturbed.cpu().numpy().flatten()
             new_score = r2_score(y_true, y_pred_new)
         
-        # 4. Importancia = Cuánto ha bajado el R2
-        # (Baseline - New). Si baja mucho, la diferencia es grande (Importante).
-        # Si sube (raro), es 0.
+        # 4. Cálculo de la importancia
         importance = baseline_score - new_score
         importances[feature_names[i]] = importance
         
@@ -72,21 +88,33 @@ def feature_importance_analysis(model, data, feature_names=None):
 
     return importances
 
+
 def week_importance_analysis(model, data):
     """
-    Calcula la importancia de cada SEMANA permutando toda la información de esa semana
-    (Features, Asistencia, etc.) entre los alumnos y midiendo la caída del rendimiento.
+    Calcula la importancia temporal de cada semana en modelos
+    con entrada secuencial.
+
+    El método consiste en permutar toda la información correspondiente
+    a una semana concreta entre nodos y medir la caída en el R².
+    Esto permite estimar en qué momentos temporales el modelo
+    basa con mayor peso su predicción final.
+
+    Requiere que las entradas tengan dimensión 3:
+        [N_nodos, N_semanas, N_features].
+
+    :param model: Modelo entrenado.
+    :param data: Objeto Data con información temporal.
+    :return: Diccionario {"Semana i": importancia}.
     """
     model.eval()
     
-    # Validar que los datos sean temporales (3D)
     if data.x.dim() != 3:
         print("⚠️ ERROR: Para analizar importancia por semanas, necesitas datos TEMPORALES [N, Semanas, Features].")
         print(f"   Tu tensor actual es: {data.x.shape}")
         print("   Asegúrate de cargar el grafo con cat_opt='Temp'.")
         return {}
 
-    # 1. Obtener línea base
+    # 1. Rendimiento base
     with torch.no_grad():
         original_pred = model(data)
         y_true = data.y.cpu().numpy().flatten()
@@ -96,33 +124,24 @@ def week_importance_analysis(model, data):
     print(f"📊 R2 Original (Baseline): {baseline_score:.4f}")
     
     importances = {}
-    num_weeks = data.x.shape[1] # [N, Weeks, Features]
+    num_weeks = data.x.shape[1]
     
-    # 2. Bucle por Semana
+    # 2. Permutación por instante temporal
     for w in range(num_weeks):
-        # Copia profunda
         data_perturbed = data.clone()
-        x_perturbed = data_perturbed.x.clone() # Tensor torch
+        x_perturbed = data_perturbed.x.clone()
         
-        # --- LA MAGIA: Shuffle de la SEMANA 'w' ---
-        # Cogemos la "rebanada" de la semana w para TODOS los alumnos
-        week_slice = x_perturbed[:, w, :] # Shape [N, Features]
-        
-        # Generamos índices aleatorios para mezclar los alumnos SOLO en esta semana
+        week_slice = x_perturbed[:, w, :]
         idx = torch.randperm(week_slice.size(0))
-        
-        # Asignamos la semana mezclada (Rompe la relación causal para esta semana)
         x_perturbed[:, w, :] = week_slice[idx]
         
         data_perturbed.x = x_perturbed
         
-        # 3. Evaluar
         with torch.no_grad():
             pred_perturbed = model(data_perturbed)
             y_pred_new = pred_perturbed.cpu().numpy().flatten()
             new_score = r2_score(y_true, y_pred_new)
         
-        # 4. Importancia
         importance = baseline_score - new_score
         importances[f"Semana {w+1}"] = importance
         
@@ -130,8 +149,15 @@ def week_importance_analysis(model, data):
 
     return importances
 
+
 def plot_feat_importance(importances, save_path=PATH_EXPLAINABILITY_OUTPUT+"feature_importance.png"):
-    # Convertir a DataFrame para Seaborn
+    """
+    Genera y guarda un gráfico de barras con la importancia
+    de cada variable de entrada.
+
+    :param importances: Diccionario {feature: importancia}.
+    :param save_path: Ruta donde se almacenará la figura.
+    """
     df_imp = pd.DataFrame(list(importances.items()), columns=['Feature', 'Importance'])
     df_imp = df_imp.sort_values(by='Importance', ascending=False)
     
@@ -148,16 +174,20 @@ def plot_feat_importance(importances, save_path=PATH_EXPLAINABILITY_OUTPUT+"feat
     print(f"✅ Gráfico guardado en: {save_path}")
     plt.show()
 
+
 def plot_week_importance(importances, save_path=PATH_EXPLAINABILITY_OUTPUT+"week_importance.png"):
+    """
+    Genera y guarda un gráfico de barras con la importancia
+    temporal por semana.
+
+    :param importances: Diccionario {"Semana i": importancia}.
+    :param save_path: Ruta de almacenamiento de la figura.
+    """
     weeks = list(importances.keys())
     vals = list(importances.values())
     
     plt.figure(figsize=(10, 6))
-    
-    # Gráfico de líneas o barras. Para tiempo, a veces línea mola más, pero barras es más claro para "importancia".
     sns.barplot(x=weeks, y=vals, palette='rocket')
-    
-    # Línea de tendencia (opcional)
     plt.plot(weeks, vals, 'b-o', alpha=0.3, label='Tendencia')
     
     plt.title("Importancia Temporal: ¿Cuándo se decide la nota?", fontsize=16, fontweight='bold')
@@ -171,26 +201,31 @@ def plot_week_importance(importances, save_path=PATH_EXPLAINABILITY_OUTPUT+"week
     print(f"✅ Gráfico guardado en: {save_path}")
     plt.show()
 
+
 if __name__ == "__main__":
-    # --- CONFIGURACIÓN ---
-    MODELO_A_ANALIZAR = 'STGNN_26012026' # O el que te haya dado mejor resultado
-    CAT_OPT = 'Temp'  # 'MP' o 'Temp' según el grafo que usaste
+    """
+    Script principal para ejecutar el análisis de explicabilidad.
+
+    Flujo:
+        1. Cargar grafo.
+        2. Instanciar modelo entrenado.
+        3. Ejecutar análisis de importancia por variables.
+        4. Ejecutar análisis temporal (si procede).
+        5. Generar visualizaciones.
+    """
+
+    MODELO_A_ANALIZAR = 'STGNN_26012026'
+    CAT_OPT = 'Temp'
     
-    # 1. Cargar Datos y Grafo
     print("Cargando grafo...")
     creator = GraphCreator()
-    # Usa la misma configuración que en tu main.py
     graph = creator.load_graph(cat_opt=CAT_OPT, sim_profile='a&g', k_neighbors=5, dyn_graph=True)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     graph = graph.to(device)
 
-    # 2. Definir Nombres de Features (IMPORTANTE: Ajusta esto a tu orden real)
-    # Según tu dataLoader, concatenas: [Asistencia (1), Notas (1), Encuestas (6?)]
-    # Revisa dataLoader.py -> X_base = torch.cat([att, grades, surv], dim=2)
     nombres_features = creator.get_features_names()
     
-    # Si la longitud no coincide, cortamos o rellenamos para que no falle
     real_feats = 0
     if CAT_OPT == 'Temp':
         real_feats = graph.x.shape[2]
@@ -201,10 +236,6 @@ if __name__ == "__main__":
         print(f"⚠️ Aviso: Tienes {real_feats} features pero definiste {len(nombres_features)} nombres.")
         nombres_features = [f"Feat {i}" for i in range(real_feats)]
     
-    # 3. Cargar Modelo Entrenado
-    # Aquí necesitamos instanciar el modelo y (idealmente) cargar pesos guardados.
-    # Como tu código actual no guarda el .pth en disco permanentemente (solo en memoria durante el loop),
-    # vamos a hacer un entrenamiento rápido de 1 fold para tener el modelo "caliente".
     print(f"Entrenando {MODELO_A_ANALIZAR} rápidamente para análisis...")
     trainer = EntrenadorGNN()
     
@@ -212,7 +243,6 @@ if __name__ == "__main__":
     
     print("Modelo listo. Iniciando XAI...")
 
-    # 4. Análisis
     imps_feat = feature_importance_analysis(model, graph, feature_names=nombres_features)
     plot_feat_importance(imps_feat)
     

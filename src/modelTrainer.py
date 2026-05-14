@@ -1,3 +1,8 @@
+"""
+Módulo encargado del entrenamiento y evaluación de modelos GNN para la predicción de rendimiento académico.
+Contiene la clase EntrenadorGNN, que implementa un proceso de entrenamiento robusto con early stopping, reinicios y shake de pesos para escapar de mínimos locales.
+Además, incluye funciones para calcular métricas de regresión y clasificación, y para guardar/cargar modelos y sus configuraciones.
+"""
 
 import torch
 from model import AdaptiveModel

@@ -1,3 +1,19 @@
+"""
+Módulo para el análisis de resultados de Grid Search.
+Permite:
+    - Cargar resultados desde archivos CSV.
+    - Identificar las mejores configuraciones según R² y MAPE.
+    - Generar gráficos detallados para visualizar el impacto de los hiperparámetros.
+    - Guardar gráficos y resúmenes de las mejores configuraciones.
+Uso:
+    1. Ejecutar el script.
+    2. Seleccionar el archivo CSV a analizar o elegir 'all' para analizar todos los archivos disponibles.
+    3. Visualizar los resultados en consola y gráficos generados.
+    4. Revisar los archivos guardados con los gráficos y resúmenes de las mejores configuraciones.
+Nota:
+    - Asegúrese de que los archivos CSV sigan el formato esperado con las columnas: 'Hidden_Dim', 'Dropout', 'LR', 'R2_Mean', 'Best_R2', 'MAPE_Mean', 'Best_MAPE'.
+"""
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -6,15 +22,20 @@ import os
 PATH_FILES = "./data/hyperparam_opt/"
 
 def analyze_grid_search_results(file_path, show_plots=True):
-
-    # 1. Cargar los datos
+    """Analiza los resultados de un Grid Search almacenados en un archivo CSV.
+    Identifica las mejores configuraciones según R² y MAPE, y genera gráficos para visualizar el impacto de los hiperparámetros.
+    Args:
+        file_path (str): Ruta al archivo CSV con los resultados del Grid Search.
+        show_plots (bool): Indica si se deben mostrar los gráficos en pantalla.
+    Returns:
+        tuple: Configuraciones óptimas para R2 y MAPE.
+    """
+    
     df = pd.read_csv(file_path)
-    # 2. Análisis: Encontrar la mejor configuración
-    # Mejor R2 (Mayor es mejor)
+    
     best_r2_idx = df['R2_Mean'].idxmax()
     best_r2_config = df.loc[best_r2_idx]
 
-    # Mejor MAPE (Menor es mejor)
     best_mape_idx = df['MAPE_Mean'].idxmin()
     best_mape_config = df.loc[best_mape_idx]
 
@@ -23,11 +44,9 @@ def analyze_grid_search_results(file_path, show_plots=True):
     print("\n=== Mejor Configuración por MAPE (Minimizando) ===")
     print(best_mape_config[['Hidden_Dim', 'Dropout', 'LR', 'R2_Mean', 'MAPE_Mean']])
 
-    # 3. Visualización
+    
     sns.set(style="whitegrid")
 
-    # Crear gráficos detallados separando por Dropout para ver el efecto de Hidden_Dim y LR
-    # Gráfico para R2
     g_r2 = sns.catplot(
         data=df, 
         x='Hidden_Dim', 
@@ -42,7 +61,7 @@ def analyze_grid_search_results(file_path, show_plots=True):
     g_r2.fig.subplots_adjust(top=0.85)
     g_r2.fig.suptitle('R2 Mean: Impacto de Hidden Dim, LR y Dropout')
 
-    # Gráfico para MAPE
+
     g_mape = sns.catplot(
         data=df, 
         x='Hidden_Dim', 
@@ -50,14 +69,14 @@ def analyze_grid_search_results(file_path, show_plots=True):
         hue='LR', 
         col='Dropout', 
         kind='point', 
-        palette='magma_r', # Invertido porque menor es mejor
+        palette='magma_r',
         height=4, 
         aspect=1
     )
     g_mape.figure.subplots_adjust(top=0.85)
     g_mape.figure.suptitle('MAPE Mean: Impacto de Hidden Dim, LR y Dropout')
 
-    # Guardamos los gráficos
+    
     path = file_path.replace(".csv", "_R2_plot.png")
     g_r2.savefig(path)
     print(f"📁 Gráfico de R2 guardado en '{path}'")
@@ -71,18 +90,21 @@ def analyze_grid_search_results(file_path, show_plots=True):
     return best_r2_config, best_mape_config
 
 if __name__ == "__main__":
-
-    # Muestro los archivos disponibles
+    """
+    Ejecuta el análisis de los resultados del Grid Search.
+    Permite seleccionar un archivo específico o analizar todos los archivos disponibles en la carpeta.
+    """
+    
     print("Archivos disponibles para análisis:")
     archivos = os.listdir(PATH_FILES)
     archivos = [f for f in archivos if f.endswith(".csv") and "grid_search_results" in f]
     for i,file in enumerate(archivos):
         print(f"\t{i}: {file}")
     
-    # Selecciono el archivo a analizar
+
     idx = input("\nIngrese el número del archivo que desea analizar: ")
-    if idx == 'all':
-        print("Análisis de todos los archivos:")
+    if idx == 'all':    # Analizar todos los archivos disponibles y guardar un resumen de las mejores configuraciones
+        print("Análisis de todos los archivos:")    
         results_r2 = []
         results_mape = []
         for file in archivos:

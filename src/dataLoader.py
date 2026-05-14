@@ -1,3 +1,8 @@
+"""
+Módulo encargado de la carga, alineación y estructuración de los datos académicos del curso
+(asistencia, seguimiento y encuestas) en tensores de PyTorch preparados para su uso en modelos de aprendizaje automático.
+"""
+
 from datetime import datetime
 import os
 import re

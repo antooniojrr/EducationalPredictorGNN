@@ -1,4 +1,13 @@
-
+"""
+Módulo que define las arquitecturas de modelos GNN y LSTM para la predicción de rendimiento académico.
+Contiene:
+- My_LSTM: Modelo LSTM puro para modelar secuencias temporales sin información de grafo.
+- GNN_GCN: Modelo basado en Graph Convolutional Networks para grafos estáticos
+- GNN_GAT: Modelo basado en Graph Attention Networks para grafos estáticos.
+- GNN_SAGE: Modelo basado en GraphSAGE para grafos estáticos.
+- STGNN: Modelo espacio-temporal que combina GNN con LSTM para capturar dinámicas estructurales a lo largo del tiempo.
+- AdaptiveModel: Clase envoltorio que permite seleccionar dinámicamente el tipo de modelo a utilizar en función de la configuración deseada.
+"""
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -26,18 +35,30 @@ except ImportError:
 if TORCH_DISPONIBLE:
     
     class My_LSTM(nn.Module):
+        """
+        Modelo LSTM puro para predicción basada exclusivamente en información temporal.
+
+        Este modelo actúa como baseline, ya que únicamente modela la evolución
+        temporal de las características de cada nodo (por ejemplo, estudiantes),
+        ignorando cualquier estructura relacional o información del grafo.
+        """
+
         def __init__(self, input_dim, hidden_dim=64, num_layers=2, output_dim=1, dropout=0.3, batch_first=True):
             """
-            LSTM Pura para predicción de rendimiento.
-            Actúa como BASELINE: Solo mira la evolución temporal, ignora las relaciones sociales.
+            Inicializa el modelo LSTM.
+
+            :param input_dim: Dimensión del vector de entrada por instante temporal.
+            :param hidden_dim: Dimensión del estado oculto de la LSTM.
+            :param num_layers: Número de capas apiladas en la LSTM.
+            :param output_dim: Dimensión de la salida final.
+            :param dropout: Probabilidad de dropout entre capas LSTM y antes de la capa final.
+            :param batch_first: Si True, el tensor de entrada tiene forma [batch, seq, features].
             """
             super(My_LSTM, self).__init__()
             
             self.hidden_dim = hidden_dim
             self.num_layers = num_layers
             
-            # DEFINICIÓN DE LA LSTM
-            # batch_first=True es vital porque tus datos son [Batch, Semanas, Features]
             self.lstm = nn.LSTM(
                 input_size=input_dim,
                 hidden_size=hidden_dim,
@@ -46,41 +67,44 @@ if TORCH_DISPONIBLE:
                 dropout=dropout if num_layers > 1 else 0
             )
             
-            # CAPA COMPLETAMENTE CONECTADA (Decodificador)
             self.fc = nn.Linear(hidden_dim, output_dim)
             self.dropout = nn.Dropout(dropout)
             self.sigmoid = nn.Sigmoid()
 
         def forward(self, data: Data):
             """
-            data: objeto Data de PyTorch Geometric
-            x: Tensor [Batch_Size, Seq_Len, Input_Dim]
-            (Ej: 70 alumnos, 15 semanas, 12 features)
-            
-            edge_index: SE IGNORA (Está aquí solo por compatibilidad con el trainer de GNN)
+            Define el paso hacia adelante del modelo.
+
+            :param data: Objeto Data de PyTorch Geometric que contiene:
+                         - x: Tensor de forma [batch_size, seq_len, input_dim].
+                         - edge_index: No utilizado (incluido por compatibilidad).
+            :return: Tensor con la predicción final en rango [0,1].
             """
-            
-            # 1. PASO LSTM
-            # out: contiene los estados ocultos de TODAS las semanas [Batch, Seq, Hidden]
-            # _ : (h_n, c_n) contiene el estado final (memoria)
             lstm_out, (h_n, c_n) = self.lstm(data.x)
-            
-            # 2. SELECCIÓN DEL ÚLTIMO ESTADO
-            # Solo nos importa lo que el modelo "pensaba" en la última semana del curso.
-            # Cogemos: Todas las filas (:), Última columna (-1), Todas las features (:)
             last_hidden_state = lstm_out[:, -1, :] 
-            
-            # 3. CLASIFICACIÓN / REGRESIÓN
             out = self.dropout(last_hidden_state)
             out = self.fc(out)
-            
-            # Retornamos sigmoid para tener rango 0-1 (nota normalizada)
             return self.sigmoid(out).squeeze()
         
 
     class GNN_GCN(torch.nn.Module):
-        """Graph Convolutional Network"""
+        """
+        Modelo Graph Convolutional Network (GCN) para predicción basada en grafos estáticos.
+
+        Aplica múltiples capas de convolución espectral sobre el grafo,
+        agregando información estructural de los vecinos de cada nodo.
+        """
+
         def __init__(self, input_dim, hidden_dim=64, output_dim=1, num_layers=3, dropout=0.3):
+            """
+            Inicializa la arquitectura GCN.
+
+            :param input_dim: Dimensión de las características de entrada.
+            :param hidden_dim: Dimensión de las representaciones ocultas.
+            :param output_dim: Dimensión de la salida final.
+            :param num_layers: Número total de capas GCN.
+            :param dropout: Probabilidad de dropout entre capas.
+            """
             super(GNN_GCN, self).__init__()
             
             self.convs = torch.nn.ModuleList()
@@ -95,9 +119,18 @@ if TORCH_DISPONIBLE:
             self.dropout = dropout
         
         def forward(self, data):
+            """
+            Ejecuta la propagación hacia adelante del modelo GCN.
+
+            :param data: Objeto Data que contiene:
+                         - x: Características nodales [N, F] o [N, T, F].
+                         - edge_index: Índices de aristas del grafo.
+            :return: Predicción escalar por nodo en rango [0,1].
+            """
             x, edge_index = data.x, data.edge_index
             if x.dim() == 3:
                 x = x.mean(dim=1)
+
             for i, conv in enumerate(self.convs):
                 x = conv(x, edge_index)
                 if i < len(self.convs) - 1:
@@ -109,8 +142,24 @@ if TORCH_DISPONIBLE:
 
 
     class GNN_GAT(torch.nn.Module):
-        """Graph Attention Network"""
+        """
+        Modelo Graph Attention Network (GAT).
+
+        Utiliza mecanismos de atención para ponderar la contribución
+        de los nodos vecinos durante la agregación.
+        """
+
         def __init__(self, input_dim, hidden_dim=64, output_dim=1, num_layers=3, dropout=0.3, heads=4):
+            """
+            Inicializa la arquitectura GAT.
+
+            :param input_dim: Dimensión de entrada.
+            :param hidden_dim: Dimensión interna por cabeza de atención.
+            :param output_dim: Dimensión de salida.
+            :param num_layers: Número total de capas GAT.
+            :param dropout: Probabilidad de dropout.
+            :param heads: Número de cabezas de atención.
+            """
             super(GNN_GAT, self).__init__()
             
             self.convs = torch.nn.ModuleList()
@@ -125,9 +174,16 @@ if TORCH_DISPONIBLE:
             self.dropout = dropout
             
         def forward(self, data):
+            """
+            Ejecuta la propagación hacia adelante del modelo GAT.
+
+            :param data: Objeto Data con características nodales y aristas.
+            :return: Predicción escalar por nodo en rango [0,1].
+            """
             x, edge_index = data.x, data.edge_index
             if x.dim() == 3:
                 x = x.mean(dim=1)
+
             for i, conv in enumerate(self.convs):
                 x = conv(x, edge_index)
                 if i < len(self.convs) - 1:
@@ -139,8 +195,24 @@ if TORCH_DISPONIBLE:
 
 
     class GNN_SAGE(torch.nn.Module):
-        """GraphSAGE"""
+        """
+        Modelo GraphSAGE.
+
+        Implementa un esquema de agregación inductiva que permite
+        generalizar a nodos no vistos durante el entrenamiento.
+        """
+
         def __init__(self, input_dim, hidden_dim=64, output_dim=1, num_layers=3, dropout=0.3, aggr="lstm"):
+            """
+            Inicializa la arquitectura GraphSAGE.
+
+            :param input_dim: Dimensión de entrada.
+            :param hidden_dim: Dimensión interna.
+            :param output_dim: Dimensión de salida.
+            :param num_layers: Número de capas.
+            :param dropout: Probabilidad de dropout.
+            :param aggr: Tipo de agregador (mean, max, lstm, etc.).
+            """
             super(GNN_SAGE, self).__init__()
             
             self.convs = torch.nn.ModuleList()
@@ -154,10 +226,18 @@ if TORCH_DISPONIBLE:
             self.dropout = dropout
             
         def forward(self, data):
+            """
+            Ejecuta la propagación hacia adelante del modelo GraphSAGE.
+
+            :param data: Objeto Data con x y edge_index.
+            :return: Predicción escalar por nodo en rango [0,1].
+            """
             x, edge_index = data.x, data.edge_index
             edge_index = sort_edge_index(edge_index, sort_by_row=False)
+
             if x.dim() == 3:
                 x = x.mean(dim=1)
+
             for i, conv in enumerate(self.convs):
                 x = conv(x, edge_index)
                 if i < len(self.convs) - 1:
@@ -169,17 +249,31 @@ if TORCH_DISPONIBLE:
 
 
     class STGNN(torch.nn.Module):
-        """Modelo modular para grafos espaciales-temporales (Corregido)"""
+        """
+        Modelo Espacio-Temporal basado en GNN + LSTM.
+
+        Combina procesamiento espacial (mediante capas de convolución
+        sobre grafos) con modelado temporal secuencial (LSTM),
+        permitiendo capturar dinámicas estructurales a lo largo del tiempo.
+        """
+
         def __init__(self, type: str, input_dim, hidden_dim=64, output_dim=1, num_layers=3, dropout=0.3):
+            """
+            Inicializa el modelo STGNN.
+
+            :param type: Tipo de convolución espacial ('GCN', 'GAT', 'SAGE').
+            :param input_dim: Dimensión de entrada.
+            :param hidden_dim: Dimensión interna.
+            :param output_dim: Dimensión de salida.
+            :param num_layers: Número de capas espaciales.
+            :param dropout: Probabilidad de dropout.
+            """
             super(STGNN, self).__init__()
             
             self.num_layers = num_layers
             self.dropout_rate = dropout
-            
-            # --- FIX 1: Usar ModuleList para que PyTorch rastree los parámetros ---
             self.gcn_layers = ModuleList()
             
-            # Primera capa (Input -> Hidden)
             HEADS = 2
             match type:
                 case 'GCN':
@@ -189,80 +283,80 @@ if TORCH_DISPONIBLE:
                 case 'SAGE':
                     self.gcn_layers.append(SAGEConv(input_dim, hidden_dim, aggr="lstm"))
             
-            # Capas ocultas siguientes (Hidden -> Hidden)
             for i in range(num_layers-2):
                 if i == 0 and type == 'GAT':
                     self.gcn_layers.append(GCNConv(hidden_dim * HEADS, hidden_dim))
                 else:
                     self.gcn_layers.append(GCNConv(hidden_dim, hidden_dim))
             
-            # LSTM
             if type == 'GAT' and num_layers <=2:
                 self.lstm = LSTM(input_size=hidden_dim * HEADS, hidden_size=hidden_dim, batch_first=True)
             else:
                 self.lstm = LSTM(input_size=hidden_dim, hidden_size=hidden_dim, batch_first=True)
             
-            # Capa de salida
             self.fc = Linear(hidden_dim, output_dim)
 
         def forward(self, data):
             """
-            data: Objeto Data de PyG que contiene:
-                - x: [N_alumnos, N_semanas, N_features]
-                - edge_index: Grafo estático (fallback)
-                - dynamic_edge_indices: Lista de aristas por semana (opcional)
+            Ejecuta la propagación espacio-temporal.
+
+            :param data: Objeto Data que contiene:
+                         - x: [N, T, F]
+                         - edge_index: Grafo estático
+                         - dynamic_edge_indices: Lista opcional de grafos dinámicos por instante
+            :return: Predicción escalar por nodo en rango [0,1].
             """
             x = data.x
             static_edge_index = data.edge_index
             batch_size, seq_len, _ = x.shape
-
-            # Comprobamos si existen aristas dinámicas
             dyn_edges = getattr(data, "dynamic_edge_indices", None)
             
             embeddings_temporales = []
             
-            # --- BUCLE TEMPORAL (Semana a Semana) ---
             for t in range(seq_len):
-                # 1. Extraer features de la semana t: [N, Features]
                 x_t = x[:, t, :] 
                 
-                # 2. Decidir qué grafo usar (Dinámico o Estático)
-                # --- FIX 2: Lógica robusta ---
                 if dyn_edges is not None and t < len(dyn_edges):
                     current_edge_index = dyn_edges[t]
                 else:
-                    current_edge_index = static_edge_index # Usamos el estático por defecto
+                    current_edge_index = static_edge_index
                 
                 current_edge_index = sort_edge_index(current_edge_index, sort_by_row=False)
-                # 3. Aplicar capas GCN
+
                 for layer in self.gcn_layers:
                     x_t = layer(x_t, current_edge_index)
                     x_t = F.relu(x_t)
                     x_t = F.dropout(x_t, p=self.dropout_rate, training=self.training)
                 
-                # Guardamos el embedding espacial de esta semana
                 embeddings_temporales.append(x_t)
             
-            # 4. Reconstruir secuencia: [N, Semanas, Hidden]
             x_sequence = torch.stack(embeddings_temporales, dim=1)
-            
-            # 5. LSTM (Procesamiento Temporal)
-            # Solo necesitamos el output, (h_n, c_n) no se usan explícitamente si cogemos out[:, -1, :]
             lstm_out, _ = self.lstm(x_sequence)
-            
-            # Tomamos el estado de la ÚLTIMA semana para predecir
             last_hidden_state = lstm_out[:, -1, :]
-            
-            # 6. Predicción Final
             out = self.fc(last_hidden_state)
-            
-            # Sigmoid asume que tus notas target están normalizadas 0-1
             return torch.sigmoid(out).squeeze()
     
 
     class AdaptiveModel(nn.Module):
+        """
+        Modelo envoltorio que permite seleccionar dinámicamente
+        el tipo de arquitectura a utilizar.
+        """
+
         TYPES = ['LSTM', 'GCN', 'GAT', 'SAGE', 'STGNN']
+
         def __init__(self, model_type, input_dim, hidden_dim = 64, output_dim=1, num_layers=3, dropout=0.3, type_stgnn='GAT'):
+            """
+            Inicializa el modelo adaptativo.
+
+            :param model_type: Tipo de modelo ('LSTM', 'GCN', 'GAT', 'SAGE', 'STGNN').
+            :param input_dim: Dimensión de entrada.
+            :param hidden_dim: Dimensión interna.
+            :param output_dim: Dimensión de salida.
+            :param num_layers: Número de capas.
+            :param dropout: Probabilidad de dropout.
+            :param type_stgnn: Tipo de capa espacial en caso de usar STGNN.
+            """
             super().__init__()
             self.type = model_type
             
@@ -279,8 +373,14 @@ if TORCH_DISPONIBLE:
                     self.model = STGNN(type_stgnn, input_dim, hidden_dim, output_dim, num_layers=num_layers, dropout=dropout)
                 case _:
                     raise ValueError(f"Modelo desconocido: {model_type}")
+
             self.fc = nn.Linear(hidden_dim, output_dim)
 
         def forward(self, data):
+            """
+            Ejecuta la propagación hacia adelante delegando en el modelo seleccionado.
+
+            :param data: Objeto Data con las entradas necesarias.
+            :return: Predicción generada por el modelo subyacente.
+            """
             return self.model.forward(data)
-    

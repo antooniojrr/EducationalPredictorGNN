@@ -1,3 +1,16 @@
+"""
+Módulo principal para la evaluación final de modelos mediante
+validación cruzada (K-Fold Cross-Validation).
+
+Este script:
+    - Carga o genera los grafos necesarios.
+    - Ejecuta entrenamiento y validación en múltiples folds.
+    - Selecciona el mejor modelo según R².
+    - Genera métricas agregadas y gráficas de rendimiento.
+    - Guarda modelos y resultados en disco.
+"""
+
+
 from sklearn.model_selection import KFold
 import pandas as pd
 import torch
@@ -10,17 +23,7 @@ from modelTrainer import EntrenadorGNN
 from predictionsVisualizer import plot_model_performance
 # ---------------------------------------------------------
 
-"""
-Módulo principal para la evaluación final de modelos mediante
-validación cruzada (K-Fold Cross-Validation).
 
-Este script:
-    - Carga o genera los grafos necesarios.
-    - Ejecuta entrenamiento y validación en múltiples folds.
-    - Selecciona el mejor modelo según R².
-    - Genera métricas agregadas y gráficas de rendimiento.
-    - Guarda modelos y resultados en disco.
-"""
 
 FINAL_MODEL_METRICS_PATH = './data/metrics/final_models/'
 FINAL_MODELS_DIR = 'final_models'

@@ -209,7 +209,7 @@ class EarlyWarningAnalyzer:
         plt.ylim(0, 1.05)
         plt.legend(title='Arquitectura', bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
         plt.tight_layout()
-        plt.savefig('./media/comparativa_global_r2.png', dpi=300)
+        plt.savefig('./media/comparativa_r2.pdf', dpi=300)
         print("Gráfica comparativa de R² guardada en disco.")
         plt.show()
         plt.close()
@@ -220,21 +220,29 @@ class EarlyWarningAnalyzer:
             x='Semana', 
             y='Recall', 
             hue='Modelo',
-            style='Modelo',
-            markers=True, 
+            style='Modelo', 
             dashes=False,
             palette=palette,
             linewidth=2.5,
-            markersize=9
+            markersize=7,
+            markers = 's' 
         )
         
-        plt.title('Evolución de la Alerta Temprana (Recall) - Comparativa', fontsize=16, fontweight='bold', pad=20)
-        plt.xlabel('Semana del Curso', fontsize=14)
+        plt.title('Comparativa de Sensibilidad (Recall) entre Modelos', fontsize=16, fontweight='bold', pad=20)
+        plt.xlabel('Semanas Transcurridas', fontsize=14)
         plt.ylabel('Recall (Sensibilidad)', fontsize=14)
-        plt.ylim(0, 1.05)
-        plt.legend(title='Arquitectura', bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
+        plt.ylim(0.5, 1.05)
+        plt.legend(
+            title='Modelo', 
+            loc='lower center', 
+            bbox_to_anchor=(0.5, 0.05), 
+            ncol=1, 
+            frameon=True,
+            facecolor='white',
+            edgecolor='lightgrey'
+        )
         plt.tight_layout()
-        plt.savefig('./media/comparativa_global_recall.png', dpi=300)
+        plt.savefig('./media/comparativa_recall.pdf', dpi=300)
         print("Gráfica comparativa de Recall guardada en disco.")
         plt.show()
         plt.close()
